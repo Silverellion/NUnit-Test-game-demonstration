@@ -380,9 +380,9 @@ public class CombatManager : MonoBehaviour
             return;
         }
 
-        // 160px spacing for 155px wide cards in 1600x900 screen (leaves 5px margin, 0 overlap)
-        float maxHandWidth = 820f;
-        float defaultSpacing = 160f;
+        // Spacing calibrated for 244px wide cards in 1920x1080 screen
+        float maxHandWidth = 1050f;
+        float defaultSpacing = 220f;
         float cardSpacing = defaultSpacing;
 
         if (totalCards > 1 && (totalCards - 1) * cardSpacing > maxHandWidth)
@@ -392,14 +392,14 @@ public class CombatManager : MonoBehaviour
 
         float angleStep;
         if (totalCards <= 1) angleStep = 0f;
-        else if (totalCards == 2) angleStep = 6f;
-        else if (totalCards == 3) angleStep = 4.8f;
-        else if (totalCards <= 5) angleStep = 3.6f;
-        else angleStep = 18f / (totalCards - 1);
+        else if (totalCards == 2) angleStep = 5f;
+        else if (totalCards == 3) angleStep = 4.2f;
+        else if (totalCards <= 5) angleStep = 3.2f;
+        else angleStep = 16f / (totalCards - 1);
 
         float centerIndex = (totalCards - 1) / 2f;
         float offset = index - centerIndex;
-        float arcRadius = 1200f;
+        float arcRadius = 1400f;
 
         float posX = offset * cardSpacing;
         float rotZ = -offset * angleStep;
@@ -596,17 +596,48 @@ public class CombatManager : MonoBehaviour
         return false;
     }
 
-    public void OnCardDragStart(CardData card)
+    private CardData hoveredCard = null;
+
+    public void OnCardHoverStart(CardData card)
     {
+        if (!isPlayerTurn || combatEnded || isActionInProgress) return;
+        hoveredCard = card;
+
         if (card.targetType == CardTargetType.Enemy)
         {
             if (enemyVisual != null)
-                enemyVisual.SetTargetHighlighted(true, false, new Color(1f, 0.25f, 0.25f));
+                enemyVisual.SetTargetHighlighted(true, false, new Color(1f, 0.22f, 0.22f));
         }
         else
         {
             if (playerVisual != null)
-                playerVisual.SetTargetHighlighted(true, false, new Color(0.25f, 0.70f, 1f));
+                playerVisual.SetTargetHighlighted(true, false, new Color(0.22f, 0.65f, 1f));
+        }
+    }
+
+    public void OnCardHoverEnd(CardData card)
+    {
+        if (hoveredCard == card)
+        {
+            hoveredCard = null;
+        }
+
+        if (enemyVisual != null) enemyVisual.SetTargetHighlighted(false, false, Color.white);
+        if (playerVisual != null) playerVisual.SetTargetHighlighted(false, false, Color.white);
+    }
+
+    public void OnCardDragStart(CardData card)
+    {
+        hoveredCard = null;
+        if (card.targetType == CardTargetType.Enemy)
+        {
+            if (enemyVisual != null)
+                enemyVisual.SetTargetHighlighted(true, false, new Color(1f, 0.22f, 0.22f));
+        }
+        else
+        {
+            if (playerVisual != null)
+                playerVisual.SetTargetHighlighted(true, false, new Color(0.22f, 0.65f, 1f));
         }
     }
 
@@ -616,18 +647,19 @@ public class CombatManager : MonoBehaviour
         {
             bool isOver = IsPointerOverEnemy(screenPoint);
             if (enemyVisual != null)
-                enemyVisual.SetTargetHighlighted(true, isOver, new Color(1f, 0.25f, 0.25f));
+                enemyVisual.SetTargetHighlighted(true, isOver, new Color(1f, 0.22f, 0.22f));
         }
         else
         {
             bool isOver = IsPointerOverPlayer(screenPoint);
             if (playerVisual != null)
-                playerVisual.SetTargetHighlighted(true, isOver, new Color(0.25f, 0.70f, 1f));
+                playerVisual.SetTargetHighlighted(true, isOver, new Color(0.22f, 0.65f, 1f));
         }
     }
 
     public bool OnCardDragEnd(CardData card, int handIndex, Vector2 screenPoint)
     {
+        hoveredCard = null;
         if (enemyVisual != null) enemyVisual.SetTargetHighlighted(false, false, Color.white);
         if (playerVisual != null) playerVisual.SetTargetHighlighted(false, false, Color.white);
 
@@ -800,6 +832,10 @@ public class CombatManager : MonoBehaviour
 
     private void ClearHandDisplay()
     {
+        hoveredCard = null;
+        if (enemyVisual != null) enemyVisual.SetTargetHighlighted(false, false, Color.white);
+        if (playerVisual != null) playerVisual.SetTargetHighlighted(false, false, Color.white);
+
         foreach (var obj in handCardObjects)
         {
             if (obj != null) Destroy(obj);

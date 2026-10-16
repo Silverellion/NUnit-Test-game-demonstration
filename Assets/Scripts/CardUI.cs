@@ -63,7 +63,7 @@ public class CardUI : MonoBehaviour,
         if (nameText != null)
         {
             nameText.text = data.cardName;
-            UIFonts.ApplyTitle(nameText, autoSize: true, minSize: 11f, maxSize: 15f);
+            UIFonts.ApplyTitle(nameText, autoSize: true, minSize: 13f, maxSize: 18f);
         }
         if (costText != null)
         {
@@ -73,7 +73,7 @@ public class CardUI : MonoBehaviour,
         if (descriptionText != null)
         {
             descriptionText.text = data.description;
-            UIFonts.ApplyBody(descriptionText, semiBold: false, autoSize: true, minSize: 10f, maxSize: 15f);
+            UIFonts.ApplyBody(descriptionText, semiBold: false, autoSize: true, minSize: 13f, maxSize: 18f);
         }
 
         string typeString = "CARD";
@@ -87,7 +87,7 @@ public class CardUI : MonoBehaviour,
         if (typeText != null)
         {
             typeText.text = typeString;
-            UIFonts.ApplyTitle(typeText, autoSize: true, minSize: 9f, maxSize: 12f);
+            UIFonts.ApplyTitle(typeText, autoSize: true, minSize: 10f, maxSize: 14f);
         }
 
         // 2. Card Artwork (Matched from Assets/Assets/Cards)
@@ -184,8 +184,8 @@ public class CardUI : MonoBehaviour,
         if (isDragging) return;
         isHovered = true;
 
-        Vector2 targetPos = originalPosition + new Vector2(0, 54f);
-        Vector3 targetScale = Vector3.one * 1.10f;
+        Vector2 targetPos = originalPosition + new Vector2(0, 80f);
+        Vector3 targetScale = Vector3.one * 1.15f;
         Quaternion targetRot = Quaternion.identity;
 
         transform.SetAsLastSibling();
@@ -193,6 +193,8 @@ public class CardUI : MonoBehaviour,
         UITween.Move(rectTransform, targetPos, 0.16f, EaseType.EaseOutCubic);
         UITween.Rotate(rectTransform, targetRot, 0.16f, EaseType.EaseOutCubic);
         UITween.Scale(rectTransform, targetScale, 0.16f, EaseType.EaseOutBack);
+
+        combatManager?.OnCardHoverStart(cardData);
     }
 
     public void OnPointerExit(PointerEventData eventData)
@@ -208,6 +210,8 @@ public class CardUI : MonoBehaviour,
             if (!isHovered && !isDragging)
                 transform.SetSiblingIndex(handIndex);
         });
+
+        combatManager?.OnCardHoverEnd(cardData);
     }
 
     // ─── DRAG TO TARGET (Attack to Enemy, Defend/Buff to Player) ───
@@ -218,6 +222,8 @@ public class CardUI : MonoBehaviour,
 
         isDragging = true;
         isHovered = false;
+
+        combatManager?.OnCardHoverEnd(cardData);
 
         UITween.Cancel(rectTransform);
 
@@ -285,6 +291,7 @@ public class CardUI : MonoBehaviour,
         {
             isHovered = false;
             isDragging = false;
+            combatManager?.OnCardHoverEnd(cardData);
             if (canvasGroup != null) canvasGroup.blocksRaycasts = true;
             UITween.Cancel(rectTransform);
             rectTransform.localScale = Vector3.one;
