@@ -15,6 +15,17 @@ public static class UIFonts
     private static Material semiBoldMaterial;
     private static Material regularMaterial;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    public static void ResetStatics()
+    {
+        boldFont = null;
+        semiBoldFont = null;
+        regularFont = null;
+        boldMaterial = null;
+        semiBoldMaterial = null;
+        regularMaterial = null;
+    }
+
     public static TMP_FontAsset Bold
     {
         get
@@ -49,7 +60,7 @@ public static class UIFonts
     {
         get
         {
-            if (boldMaterial == null && Bold != null)
+            if ((boldMaterial == null || boldMaterial.shader == null) && Bold != null)
                 boldMaterial = CreateStyledMaterial(Bold, "Cinzel-Bold SDF Material (Styled)");
             return boldMaterial != null ? boldMaterial : (Bold != null ? Bold.material : null);
         }
@@ -59,7 +70,7 @@ public static class UIFonts
     {
         get
         {
-            if (semiBoldMaterial == null && SemiBold != null)
+            if ((semiBoldMaterial == null || semiBoldMaterial.shader == null) && SemiBold != null)
                 semiBoldMaterial = CreateStyledMaterial(SemiBold, "Cinzel-SemiBold SDF Material (Styled)");
             return semiBoldMaterial != null ? semiBoldMaterial : (SemiBold != null ? SemiBold.material : null);
         }
@@ -69,7 +80,7 @@ public static class UIFonts
     {
         get
         {
-            if (regularMaterial == null && Regular != null)
+            if ((regularMaterial == null || regularMaterial.shader == null) && Regular != null)
                 regularMaterial = CreateStyledMaterial(Regular, "Cinzel-Regular SDF Material (Styled)");
             return regularMaterial != null ? regularMaterial : (Regular != null ? Regular.material : null);
         }

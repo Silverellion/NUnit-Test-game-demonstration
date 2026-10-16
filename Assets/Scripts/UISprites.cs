@@ -11,6 +11,22 @@ public static class UISprites
 {
     private static readonly Dictionary<string, Sprite> spriteCache = new Dictionary<string, Sprite>();
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    public static void ResetCache()
+    {
+        spriteCache.Clear();
+    }
+
+    private static bool TryGetCached(string key, out Sprite sprite)
+    {
+        if (spriteCache.TryGetValue(key, out sprite) && sprite != null && sprite.texture != null)
+        {
+            return true;
+        }
+        sprite = null;
+        return false;
+    }
+
     // ─── HIGH-LEVEL CARD & UI PRESETS ───
 
     /// <summary>
@@ -49,7 +65,7 @@ public static class UISprites
     public static Sprite GetCardHeader(string cardType)
     {
         string key = $"CardHeader_{cardType}";
-        if (spriteCache.TryGetValue(key, out Sprite s)) return s;
+        if (TryGetCached(key, out Sprite s)) return s;
 
         Color btm, top, border;
         switch (cardType.ToUpperInvariant())
@@ -72,7 +88,7 @@ public static class UISprites
                 break;
         }
 
-        s = GenerateTopRoundedRect(key, 128, 64, 16f, btm, top, 2f, border);
+        s = GenerateTopRoundedRect(key, 128, 64, 20f, btm, top, 2f, border);
         spriteCache[key] = s;
         return s;
     }
@@ -237,6 +253,60 @@ public static class UISprites
         new Color(0f, 0f, 0f, 0.65f)
     );
 
+    /// <summary>
+    /// Rounded rectangular target outline frame for highlighted combat targets.
+    /// Anti-aliased SDF with rounded corners and crisp border.
+    /// Tinted blue for player, red for enemy.
+    /// </summary>
+    public static Sprite TargetOutlineFrame => GetRoundedRect(
+        "TargetOutlineFrame", 128, 128, 16f,
+        fillBottom: Color.clear, fillTop: Color.clear,
+        borderWidth: 4.5f,
+        borderColor: Color.white
+    );
+
+    /// <summary>
+    /// Vertical gradient fading from completely transparent at top (y=1) to solid opaque black at bottom (y=0).
+    /// Uses a smooth cubic ease-in S-curve to ensure a completely seamless, banding-free transition.
+    /// </summary>
+    public static Sprite BlackFadeGradient
+    {
+        get
+        {
+            string key = "BlackFadeGradient";
+            if (TryGetCached(key, out Sprite cached)) return cached;
+
+            int w = 32;
+            int h = 256;
+            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                name = key
+            };
+
+            Color[] pixels = new Color[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                float t = (float)y / (h - 1);
+                float alpha = 1f - Mathf.SmoothStep(0f, 1f, t);
+                Color c = new Color(0f, 0f, 0f, alpha);
+                for (int x = 0; x < w; x++)
+                {
+                    pixels[y * w + x] = c;
+                }
+            }
+
+            tex.SetPixels(pixels);
+            tex.Apply();
+
+            Sprite s = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
+            s.name = key;
+            spriteCache[key] = s;
+            return s;
+        }
+    }
+
     // ─── CARD ARTWORK & ICON LOADERS ───
 
     public static Sprite GetCardArtwork(string cardName)
@@ -288,7 +358,7 @@ public static class UISprites
 
     public static Sprite GetRoundedRect(string key, int w, int h, float r, Color fillBottom, Color fillTop, float borderWidth = 0f, Color borderColor = default)
     {
-        if (spriteCache.TryGetValue(key, out Sprite cached)) return cached;
+        if (TryGetCached(key, out Sprite cached)) return cached;
 
         Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
         {
@@ -357,7 +427,7 @@ public static class UISprites
 
     public static Sprite GetCircle(string key, int size, Color fillBottom, Color fillTop, float borderWidth = 0f, Color borderColor = default)
     {
-        if (spriteCache.TryGetValue(key, out Sprite cached)) return cached;
+        if (TryGetCached(key, out Sprite cached)) return cached;
 
         Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
         {
@@ -412,7 +482,7 @@ public static class UISprites
 
     public static Sprite GetTopRoundedPanel(string key, int w, int h, float r, Color bottomColor, Color topColor, float topHighlightWidth, Color topHighlightColor)
     {
-        if (spriteCache.TryGetValue(key, out Sprite cached)) return cached;
+        if (TryGetCached(key, out Sprite cached)) return cached;
         return GenerateTopRoundedRect(key, w, h, r, bottomColor, topColor, topHighlightWidth, topHighlightColor);
     }
 
@@ -484,7 +554,7 @@ public static class UISprites
 
     public static Sprite GetDividerLine(string key, int w, int h, Color centerColor, Color edgeColor)
     {
-        if (spriteCache.TryGetValue(key, out Sprite cached)) return cached;
+        if (TryGetCached(key, out Sprite cached)) return cached;
 
         Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
         {
@@ -524,7 +594,7 @@ public static class UISprites
 
     public static Sprite GetSoftShadow(string key, int w, int h, float r, float blur, Color shadowColor)
     {
-        if (spriteCache.TryGetValue(key, out Sprite cached)) return cached;
+        if (TryGetCached(key, out Sprite cached)) return cached;
 
         Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
         {

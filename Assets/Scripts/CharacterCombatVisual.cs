@@ -34,22 +34,9 @@ public class CharacterCombatVisual : MonoBehaviour
     [Header("Targeting Feedback")]
     public GameObject targetIndicator;
     public GameObject outlineRoot;
-    private Image[] outlineImages;
-    private Material outlineMaterial;
+    private Image outlineImage;
     private bool isTargetHighlighted = false;
     private Color currentHighlightColor = Color.white;
-
-    private static readonly Vector2[] OUTLINE_OFFSETS = new Vector2[]
-    {
-        new Vector2(-1f, 0f),
-        new Vector2(1f, 0f),
-        new Vector2(0f, -1f),
-        new Vector2(0f, 1f),
-        new Vector2(-1f, -1f),
-        new Vector2(1f, -1f),
-        new Vector2(-1f, 1f),
-        new Vector2(1f, 1f)
-    };
 
     private Coroutine loopCoroutine;
     private Coroutine actionCoroutine;
@@ -82,7 +69,7 @@ public class CharacterCombatVisual : MonoBehaviour
 
     public void SetupOutline()
     {
-        if (outlineImages != null && outlineImages.Length > 0 && outlineRoot != null) return;
+        if (outlineImage != null && outlineRoot != null) return;
         if (characterImage == null) return;
 
         Transform parent = spriteContainer != null ? spriteContainer : characterImage.transform.parent;
@@ -96,49 +83,28 @@ public class CharacterCombatVisual : MonoBehaviour
         }
 
         RectTransform rootRT = outlineRoot.GetComponent<RectTransform>();
-        rootRT.anchorMin = characterImage.rectTransform.anchorMin;
-        rootRT.anchorMax = characterImage.rectTransform.anchorMax;
-        rootRT.pivot = characterImage.rectTransform.pivot;
-        rootRT.anchoredPosition = characterImage.rectTransform.anchoredPosition;
-        rootRT.sizeDelta = characterImage.rectTransform.sizeDelta;
+        rootRT.anchorMin = new Vector2(0.5f, 0f);
+        rootRT.anchorMax = new Vector2(0.5f, 0f);
+        rootRT.pivot = new Vector2(0.5f, 0f);
+        rootRT.anchoredPosition = new Vector2(0f, -6f);
 
-        if (outlineMaterial == null)
-        {
-            Shader shader = Shader.Find("UI/PixelArtSilhouette");
-            if (shader == null) shader = Shader.Find("UI/Default");
-            if (shader != null)
-            {
-                outlineMaterial = new Material(shader) { hideFlags = HideFlags.DontSave };
-            }
-        }
+        Vector2 spriteSize = (spriteContainer != null) ? spriteContainer.sizeDelta : characterImage.rectTransform.sizeDelta;
+        rootRT.sizeDelta = new Vector2(spriteSize.x + 24f, spriteSize.y + 24f);
 
-        List<Image> imgs = new List<Image>();
         for (int i = outlineRoot.transform.childCount - 1; i >= 0; i--)
         {
             DestroyImmediate(outlineRoot.transform.GetChild(i).gameObject);
         }
 
-        for (int i = 0; i < OUTLINE_OFFSETS.Length; i++)
-        {
-            GameObject child = new GameObject($"Outline_{i}", typeof(RectTransform), typeof(Image));
-            child.transform.SetParent(outlineRoot.transform, false);
+        outlineImage = outlineRoot.GetComponent<Image>();
+        if (outlineImage == null)
+            outlineImage = outlineRoot.AddComponent<Image>();
 
-            RectTransform childRT = child.GetComponent<RectTransform>();
-            childRT.anchorMin = new Vector2(0.5f, 0.5f);
-            childRT.anchorMax = new Vector2(0.5f, 0.5f);
-            childRT.pivot = characterImage.rectTransform.pivot;
-            childRT.anchoredPosition = OUTLINE_OFFSETS[i] * PIXEL_SCALE;
-            childRT.sizeDelta = characterImage.rectTransform.sizeDelta;
+        outlineImage.sprite = UISprites.TargetOutlineFrame;
+        outlineImage.type = Image.Type.Sliced;
+        outlineImage.raycastTarget = false;
+        outlineImage.color = Color.clear;
 
-            Image img = child.GetComponent<Image>();
-            img.sprite = characterImage.sprite;
-            img.raycastTarget = false;
-            if (outlineMaterial != null) img.material = outlineMaterial;
-            img.color = Color.clear;
-            imgs.Add(img);
-        }
-
-        outlineImages = imgs.ToArray();
         outlineRoot.SetActive(isTargetHighlighted);
     }
 
@@ -146,7 +112,6 @@ public class CharacterCombatVisual : MonoBehaviour
     /// Applies a sprite frame while strictly preserving its pixel-scale ratio,
     /// ensuring characters NEVER shrink or stretch during attack or hurt animations.
     /// Also enforces FilterMode.Point for razor-sharp pixel art.
-    /// Synchronizes sprite frames to the silhouette outline.
     /// </summary>
     public void ApplySpriteFrame(Sprite s)
     {
@@ -167,18 +132,10 @@ public class CharacterCombatVisual : MonoBehaviour
 
         if (outlineRoot != null)
         {
-            outlineRoot.GetComponent<RectTransform>().sizeDelta = size;
-            if (outlineImages != null)
+            RectTransform ort = outlineRoot.GetComponent<RectTransform>();
+            if (ort != null)
             {
-                for (int i = 0; i < outlineImages.Length; i++)
-                {
-                    if (outlineImages[i] != null)
-                    {
-                        outlineImages[i].sprite = s;
-                        outlineImages[i].rectTransform.sizeDelta = size;
-                        outlineImages[i].rectTransform.anchoredPosition = OUTLINE_OFFSETS[i] * PIXEL_SCALE;
-                    }
-                }
+                ort.sizeDelta = new Vector2(size.x + 24f, size.y + 24f);
             }
         }
     }
@@ -195,7 +152,7 @@ public class CharacterCombatVisual : MonoBehaviour
         this.isDirectHover = directHover;
         currentHighlightColor = highlightColor;
 
-        if (outlineImages == null || outlineImages.Length == 0 || outlineRoot == null)
+        if (outlineImage == null || outlineRoot == null)
         {
             SetupOutline();
         }
@@ -203,23 +160,15 @@ public class CharacterCombatVisual : MonoBehaviour
         if (outlineRoot != null)
         {
             outlineRoot.SetActive(highlighted);
-            if (highlighted && outlineImages != null)
+            if (highlighted && outlineImage != null)
             {
                 Color c = highlightColor;
-                c.a = directHover ? 1f : 0.90f;
-                for (int i = 0; i < outlineImages.Length; i++)
-                {
-                    if (outlineImages[i] != null)
-                    {
-                        outlineImages[i].color = c;
-                        if (characterImage != null && characterImage.sprite != null)
-                            outlineImages[i].sprite = characterImage.sprite;
-                    }
-                }
+                c.a = directHover ? 1f : 0.85f;
+                outlineImage.color = c;
             }
         }
 
-        // Disable legacy flat floor indicator so only the pixel art silhouette outline displays
+        // Disable legacy flat floor indicator so clean target outline displays
         if (targetIndicator != null)
         {
             targetIndicator.SetActive(false);
@@ -230,17 +179,55 @@ public class CharacterCombatVisual : MonoBehaviour
 
     void Update()
     {
-        if (isTargetHighlighted && outlineImages != null && outlineRoot != null && outlineRoot.activeSelf)
+        if (isTargetHighlighted && outlineImage != null && outlineRoot != null && outlineRoot.activeSelf)
         {
-            float pulse = 0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 7f);
+            float pulse = 0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 6f);
             Color c = currentHighlightColor;
-            c.a = (isDirectHover ? 1f : 0.90f) * pulse;
-            for (int i = 0; i < outlineImages.Length; i++)
-            {
-                if (outlineImages[i] != null)
-                    outlineImages[i].color = c;
-            }
+            c.a = (isDirectHover ? 1f : 0.85f) * pulse;
+            outlineImage.color = c;
         }
+    }
+
+    /// <summary>
+    /// Animates character walking in from outside the screen to homePosition.
+    /// Used for initial scene entrance animation.
+    /// </summary>
+    public void WalkInFromOutside(Vector2 fromPos, float duration, Action onComplete = null)
+    {
+        if (isDead) return;
+        StopAllAnimCoroutines();
+        StartCoroutine(WalkInRoutine(fromPos, homePosition, duration, onComplete));
+    }
+
+    private IEnumerator WalkInRoutine(Vector2 startPos, Vector2 endPos, float duration, Action onComplete)
+    {
+        if (rectTransform != null)
+            rectTransform.anchoredPosition = startPos;
+
+        SetFacing(endPos.x > startPos.x);
+
+        Coroutine walkLoop = null;
+        if (walkFrames != null && walkFrames.Length > 0)
+            walkLoop = StartCoroutine(LoopFrames(walkFrames, walkFps));
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = UITween.Evaluate(Mathf.Clamp01(elapsed / duration), EaseType.EaseOutQuad);
+            if (rectTransform != null)
+                rectTransform.anchoredPosition = Vector2.Lerp(startPos, endPos, t);
+            yield return null;
+        }
+
+        if (walkLoop != null) StopCoroutine(walkLoop);
+
+        if (rectTransform != null)
+            rectTransform.anchoredPosition = endPos;
+
+        SetFacing(baseFacingRight);
+        StartIdle();
+        onComplete?.Invoke();
     }
 
     private void UpdateVisualScale()

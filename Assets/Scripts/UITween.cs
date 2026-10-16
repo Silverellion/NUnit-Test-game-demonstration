@@ -21,6 +21,12 @@ public class UITween : MonoBehaviour
 {
     private static UITween instance;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    public static void ResetStatics()
+    {
+        instance = null;
+    }
+
     private static UITween Instance
     {
         get

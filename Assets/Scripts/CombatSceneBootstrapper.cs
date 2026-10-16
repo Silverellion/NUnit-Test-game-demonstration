@@ -87,17 +87,55 @@ public class CombatSceneBootstrapper : MonoBehaviour
 #endif
         }
 
-        // ─── BACKGROUND (Animated fantasy town) ───
+        // ─── SOLID BLACK LAND (Bottom 30% of scene) ───
+        GameObject blackBackdrop = CreateUIElement("BlackBackdrop", canvasObj.transform);
+        RectTransform blackBackdropRT = blackBackdrop.GetComponent<RectTransform>();
+        StretchFull(blackBackdropRT);
+        Image blackBackdropImg = blackBackdrop.AddComponent<Image>();
+        blackBackdropImg.color = Color.black;
+        blackBackdropImg.raycastTarget = false;
+
+        GameObject groundFadeObj = CreateUIElement("GroundFadeOverlay", canvasObj.transform);
+        RectTransform groundFadeRT = groundFadeObj.GetComponent<RectTransform>();
+        groundFadeRT.anchorMin = new Vector2(0, 0);
+        groundFadeRT.anchorMax = new Vector2(1, 0.30f);
+        groundFadeRT.offsetMin = Vector2.zero;
+        groundFadeRT.offsetMax = Vector2.zero;
+        CanvasGroup groundFadeCG = groundFadeObj.AddComponent<CanvasGroup>();
+
+        Image solidImg = groundFadeObj.AddComponent<Image>();
+        solidImg.color = Color.black;
+        solidImg.raycastTarget = false;
+
+        // ─── BACKGROUND
         GameObject bgObj = CreateUIElement("ArenaBackground", canvasObj.transform);
         RectTransform bgRT = bgObj.GetComponent<RectTransform>();
-        StretchFull(bgRT);
-        Image bgImage = bgObj.AddComponent<Image>();
+        bgRT.anchorMin = new Vector2(0f, 0.15f);
+        bgRT.anchorMax = new Vector2(1f, 1.15f);
+        bgRT.offsetMin = Vector2.zero;
+        bgRT.offsetMax = Vector2.zero;
+
+        Image bgImage = bgObj   .AddComponent<Image>();
         bgImage.color = Color.white;
 
         AnimatedBackground animBg = bgObj.AddComponent<AnimatedBackground>();
         animBg.backgroundImage = bgImage;
         animBg.fps = 10f;
         animBg.LoadFrames();
+
+        // Seamless Fade Gradient attached to bottom of background
+        // Transitions effortlessly into the 30% solid black bottom part of the scene
+        GameObject bgTransition = CreateUIElement("BottomTransitionFade", bgObj.transform);
+        RectTransform transRT = bgTransition.GetComponent<RectTransform>();
+        transRT.anchorMin = new Vector2(0, 0);
+        transRT.anchorMax = new Vector2(1, 0);
+        transRT.pivot = new Vector2(0.5f, 0);
+        transRT.anchoredPosition = Vector2.zero;
+        transRT.sizeDelta = new Vector2(0, 240f);
+        Image transImg = bgTransition.AddComponent<Image>();
+        transImg.sprite = UISprites.BlackFadeGradient;
+        transImg.color = Color.white;
+        transImg.raycastTarget = false;
 
         // ─── BATTLEFIELD ARENA (Top 70% of screen) ───
         GameObject arenaArea = CreateUIElement("BattlefieldArea", canvasObj.transform);
@@ -118,10 +156,10 @@ public class CombatSceneBootstrapper : MonoBehaviour
         floorImage.color = new Color(1f, 1f, 1f, 0.35f);
 
         // ─── SOLDIER (Left side of battlefield) ───
-        PlayerUI playerUI = BuildPlayerCharacter(arenaArea.transform, out CharacterCombatVisual playerVisual);
+        PlayerUI playerUI = BuildPlayerCharacter(arenaArea.transform, out CharacterCombatVisual playerVisual, out CanvasGroup playerStatusCG);
 
         // ─── ORC (Right side of battlefield) ───
-        EnemyUI enemyUI = BuildEnemyCharacter(arenaArea.transform, out CharacterCombatVisual enemyVisual);
+        EnemyUI enemyUI = BuildEnemyCharacter(arenaArea.transform, out CharacterCombatVisual enemyVisual, out CanvasGroup enemyStatusCG);
 
         // ─── HAND AREA (Bottom 33% of screen) ───
         GameObject handArea = CreateUIElement("HandArea", canvasObj.transform);
@@ -144,7 +182,7 @@ public class CombatSceneBootstrapper : MonoBehaviour
         handContRT.anchorMax = new Vector2(0.5f, 0);
         handContRT.pivot = new Vector2(0.5f, 0);
         handContRT.anchoredPosition = new Vector2(0f, 12f);
-        handContRT.sizeDelta = new Vector2(1150, 380);
+        handContRT.sizeDelta = new Vector2(1150, 480);
 
         // ─── TURN INDICATOR (Above Hand) ───
         GameObject turnIndicator = CreateTextElement("TurnIndicator", canvasObj.transform, "YOUR TURN", 28, TextAlignmentOptions.Center, bold: true);
@@ -223,6 +261,10 @@ public class CombatSceneBootstrapper : MonoBehaviour
         combatManager.enemyUI = enemyUI;
         combatManager.playerVisual = playerVisual;
         combatManager.enemyVisual = enemyVisual;
+        combatManager.backgroundRT = bgRT;
+        combatManager.groundFadeCanvasGroup = groundFadeCG;
+        combatManager.playerStatusCanvasGroup = playerStatusCG;
+        combatManager.enemyStatusCanvasGroup = enemyStatusCG;
         combatManager.handContainer = handContainer.transform;
         combatManager.cardPrefab = cardPrefab;
         combatManager.endTurnButton = endTurnBtn.GetComponent<Button>();
@@ -247,6 +289,10 @@ public class CombatSceneBootstrapper : MonoBehaviour
         int warningCount = 0;
         foreach (var graphic in FindObjectsByType<Graphic>())
         {
+            // Character battle sprites and outlines inside SpriteContainer are intentionally flipped to face opponents
+            if (graphic.GetComponentInParent<CharacterCombatVisual>() != null)
+                continue;
+                
             if (graphic.transform.lossyScale.x < 0f)
             {
                 Debug.LogWarning($"[UI Validator] Mirrored UI Graphic detected on '{graphic.gameObject.name}' (lossyScale.x = {graphic.transform.lossyScale.x})!", graphic);
@@ -272,7 +318,7 @@ public class CombatSceneBootstrapper : MonoBehaviour
 
     // ─── SOLDIER BUILDER ───
 
-    private PlayerUI BuildPlayerCharacter(Transform arenaParent, out CharacterCombatVisual visual)
+    private PlayerUI BuildPlayerCharacter(Transform arenaParent, out CharacterCombatVisual visual, out CanvasGroup statusCG)
     {
         GameObject playerRoot = CreateUIElement("Soldier", arenaParent);
         RectTransform rootRT = playerRoot.GetComponent<RectTransform>();
@@ -309,8 +355,8 @@ public class CombatSceneBootstrapper : MonoBehaviour
         outlineRT.anchorMin = new Vector2(0.5f, 0f);
         outlineRT.anchorMax = new Vector2(0.5f, 0f);
         outlineRT.pivot = new Vector2(0.5f, 0f);
-        outlineRT.anchoredPosition = Vector2.zero;
-        outlineRT.sizeDelta = new Vector2(152, 184);
+        outlineRT.anchoredPosition = new Vector2(0f, -6f);
+        outlineRT.sizeDelta = new Vector2(176, 208);
 
         // Child 1: CharacterSprite (renders IN FRONT of outline)
         GameObject charObj = CreateUIElement("CharacterSprite", spriteContainer.transform);
@@ -341,8 +387,16 @@ public class CombatSceneBootstrapper : MonoBehaviour
         PlayerUI playerUI = playerRoot.AddComponent<PlayerUI>();
         playerUI.playerSprite = spriteImage;
 
-        // Floating Status Bar beneath Soldier
-        BuildPlayerStatusDisplay(playerRoot.transform, playerUI);
+        // Floating Status Bar beneath Soldier (wrapped in CanvasGroup for intro animation)
+        GameObject hudObj = CreateUIElement("PlayerHUD", playerRoot.transform);
+        RectTransform hudRT = hudObj.GetComponent<RectTransform>();
+        hudRT.anchorMin = Vector2.zero;
+        hudRT.anchorMax = Vector2.one;
+        hudRT.offsetMin = Vector2.zero;
+        hudRT.offsetMax = Vector2.zero;
+        statusCG = hudObj.AddComponent<CanvasGroup>();
+
+        BuildPlayerStatusDisplay(hudObj.transform, playerUI);
 
         return playerUI;
     }
@@ -382,7 +436,7 @@ public class CombatSceneBootstrapper : MonoBehaviour
 
     // ─── ORC BUILDER ───
 
-    private EnemyUI BuildEnemyCharacter(Transform arenaParent, out CharacterCombatVisual visual)
+    private EnemyUI BuildEnemyCharacter(Transform arenaParent, out CharacterCombatVisual visual, out CanvasGroup statusCG)
     {
         GameObject enemyRoot = CreateUIElement("Orc", arenaParent);
         RectTransform rootRT = enemyRoot.GetComponent<RectTransform>();
@@ -419,8 +473,8 @@ public class CombatSceneBootstrapper : MonoBehaviour
         outlineRT.anchorMin = new Vector2(0.5f, 0f);
         outlineRT.anchorMax = new Vector2(0.5f, 0f);
         outlineRT.pivot = new Vector2(0.5f, 0f);
-        outlineRT.anchoredPosition = Vector2.zero;
-        outlineRT.sizeDelta = new Vector2(192, 192);
+        outlineRT.anchoredPosition = new Vector2(0f, -6f);
+        outlineRT.sizeDelta = new Vector2(216, 216);
 
         // Child 1: CharacterSprite (renders IN FRONT of outline)
         GameObject charObj = CreateUIElement("CharacterSprite", spriteContainer.transform);
@@ -451,11 +505,17 @@ public class CombatSceneBootstrapper : MonoBehaviour
         EnemyUI enemyUI = enemyRoot.AddComponent<EnemyUI>();
         enemyUI.enemySprite = spriteImage;
 
-        // Floating Status Bar beneath Orc
-        BuildEnemyStatusDisplay(enemyRoot.transform, enemyUI);
+        // Floating Status Bar beneath Orc & Intent Badge (wrapped in CanvasGroup for intro animation)
+        GameObject hudObj = CreateUIElement("EnemyHUD", enemyRoot.transform);
+        RectTransform hudRT = hudObj.GetComponent<RectTransform>();
+        hudRT.anchorMin = Vector2.zero;
+        hudRT.anchorMax = Vector2.one;
+        hudRT.offsetMin = Vector2.zero;
+        hudRT.offsetMax = Vector2.zero;
+        statusCG = hudObj.AddComponent<CanvasGroup>();
 
-        // Intent badge floating above Orc
-        BuildEnemyIntentBadge(enemyRoot.transform, enemyUI);
+        BuildEnemyStatusDisplay(hudObj.transform, enemyUI);
+        BuildEnemyIntentBadge(hudObj.transform, enemyUI);
 
         return enemyUI;
     }
@@ -679,7 +739,7 @@ public class CombatSceneBootstrapper : MonoBehaviour
     {
         GameObject card = CreateUIElement("CardTemplate", mainCanvas.transform);
         RectTransform cardRT = card.GetComponent<RectTransform>();
-        cardRT.sizeDelta = new Vector2(244, 390);
+        cardRT.sizeDelta = new Vector2(244, 468);
         cardRT.pivot = new Vector2(0.5f, 0.5f);
 
         // Soft drop shadow behind card
@@ -711,14 +771,37 @@ public class CombatSceneBootstrapper : MonoBehaviour
         innerImage.type = Image.Type.Sliced;
         innerImage.color = Color.white;
 
-        // 3. Top Banner (Title Bar) with rounded top corners
+        // 3. Artwork Box (Strictly 1:1 Square - 220x220, top tucked underneath Title Banner to eliminate any dark horizontal seam)
+        GameObject artFrame = CreateUIElement("ArtworkFrame", cardInner.transform);
+        RectTransform artFrameRT = artFrame.GetComponent<RectTransform>();
+        artFrameRT.anchorMin = new Vector2(0.5f, 1f);
+        artFrameRT.anchorMax = new Vector2(0.5f, 1f);
+        artFrameRT.pivot = new Vector2(0.5f, 1f);
+        artFrameRT.anchoredPosition = new Vector2(0f, -46f);
+        artFrameRT.sizeDelta = new Vector2(220f, 222f);
+        Image artFrameImage = artFrame.AddComponent<Image>();
+        artFrameImage.sprite = UISprites.ArtworkFrame;
+        artFrameImage.type = Image.Type.Sliced;
+        artFrameImage.color = Color.white;
+
+        GameObject artArea = CreateUIElement("ArtworkPlaceholder", artFrame.transform);
+        RectTransform artRT = artArea.GetComponent<RectTransform>();
+        StretchFull(artRT);
+        artRT.offsetMin = new Vector2(3, 3);
+        artRT.offsetMax = new Vector2(-3, -3);
+        Image artImage = artArea.AddComponent<Image>();
+        artImage.sprite = UISprites.GetCardArtwork("Strike");
+        artImage.preserveAspect = true;
+        artImage.color = Color.white;
+
+        // 4. Top Banner (Title Bar) with rounded top corners (renders OVER the top of ArtworkFrame, seamlessly flush)
         GameObject headerBanner = CreateUIElement("HeaderBanner", cardInner.transform);
         RectTransform headerRT = headerBanner.GetComponent<RectTransform>();
-        headerRT.anchorMin = new Vector2(0, 1f);
-        headerRT.anchorMax = new Vector2(1, 1f);
+        headerRT.anchorMin = new Vector2(0f, 1f);
+        headerRT.anchorMax = new Vector2(1f, 1f);
         headerRT.pivot = new Vector2(0.5f, 1f);
-        headerRT.anchoredPosition = new Vector2(0f, -4f);
-        headerRT.sizeDelta = new Vector2(-8f, 44f);
+        headerRT.anchoredPosition = Vector2.zero;
+        headerRT.sizeDelta = new Vector2(0f, 48f);
         Image headerImage = headerBanner.AddComponent<Image>();
         headerImage.sprite = UISprites.GetCardHeader("ATTACK");
         headerImage.type = Image.Type.Sliced;
@@ -729,11 +812,11 @@ public class CombatSceneBootstrapper : MonoBehaviour
         RectTransform titleRT = titleObj.GetComponent<RectTransform>();
         StretchFull(titleRT);
         titleRT.offsetMin = new Vector2(36, 0); // Leave room for energy gem on the left
-        titleRT.offsetMax = new Vector2(-6, 0);
+        titleRT.offsetMax = new Vector2(-10, 0);
         TextMeshProUGUI titleTMP = titleObj.GetComponent<TextMeshProUGUI>();
         titleTMP.color = new Color(0.98f, 0.94f, 0.82f);
 
-        // 4. Energy Orb (Top-Left corner, overlapping the frame)
+        // 5. Energy Orb (Top-Left corner, overlapping the frame)
         GameObject energyOrb = CreateUIElement("EnergyOrb", card.transform);
         RectTransform orbRT = energyOrb.GetComponent<RectTransform>();
         orbRT.anchorMin = new Vector2(0, 1);
@@ -752,36 +835,13 @@ public class CombatSceneBootstrapper : MonoBehaviour
         TextMeshProUGUI costTMP = costObj.GetComponent<TextMeshProUGUI>();
         costTMP.color = Color.white;
 
-        // 5. Artwork Box (Strictly 1:1 Square - 220x220 to cover 1:1 artwork images fully)
-        GameObject artFrame = CreateUIElement("ArtworkFrame", cardInner.transform);
-        RectTransform artFrameRT = artFrame.GetComponent<RectTransform>();
-        artFrameRT.anchorMin = new Vector2(0.5f, 1f);
-        artFrameRT.anchorMax = new Vector2(0.5f, 1f);
-        artFrameRT.pivot = new Vector2(0.5f, 1f);
-        artFrameRT.anchoredPosition = new Vector2(0f, -50f);
-        artFrameRT.sizeDelta = new Vector2(220f, 220f);
-        Image artFrameImage = artFrame.AddComponent<Image>();
-        artFrameImage.sprite = UISprites.ArtworkFrame;
-        artFrameImage.type = Image.Type.Sliced;
-        artFrameImage.color = Color.white;
-
-        GameObject artArea = CreateUIElement("ArtworkPlaceholder", artFrame.transform);
-        RectTransform artRT = artArea.GetComponent<RectTransform>();
-        StretchFull(artRT);
-        artRT.offsetMin = new Vector2(3, 3);
-        artRT.offsetMax = new Vector2(-3, -3);
-        Image artImage = artArea.AddComponent<Image>();
-        artImage.sprite = UISprites.GetCardArtwork("Strike");
-        artImage.preserveAspect = true;
-        artImage.color = Color.white;
-
         // 6. Card Type Ribbon
         GameObject typeRibbon = CreateUIElement("TypeRibbon", cardInner.transform);
         RectTransform ribbonRT = typeRibbon.GetComponent<RectTransform>();
         ribbonRT.anchorMin = new Vector2(0.5f, 1f);
         ribbonRT.anchorMax = new Vector2(0.5f, 1f);
         ribbonRT.pivot = new Vector2(0.5f, 1f);
-        ribbonRT.anchoredPosition = new Vector2(0f, -274f);
+        ribbonRT.anchoredPosition = new Vector2(0f, -268f);
         ribbonRT.sizeDelta = new Vector2(160f, 24f);
         Image ribbonImage = typeRibbon.AddComponent<Image>();
         ribbonImage.sprite = UISprites.GetPill("TypeRibbon", 128, 32, new Color(0.06f, 0.08f, 0.12f, 0.85f), new Color(0.14f, 0.17f, 0.24f, 0.85f), 1f, new Color(0.4f, 0.45f, 0.6f, 0.4f));
@@ -800,8 +860,8 @@ public class CombatSceneBootstrapper : MonoBehaviour
         descBoxRT.anchorMin = new Vector2(0.5f, 1f);
         descBoxRT.anchorMax = new Vector2(0.5f, 1f);
         descBoxRT.pivot = new Vector2(0.5f, 1f);
-        descBoxRT.anchoredPosition = new Vector2(0f, -302f);
-        descBoxRT.sizeDelta = new Vector2(220f, 74f);
+        descBoxRT.anchoredPosition = new Vector2(0f, -295f);
+        descBoxRT.sizeDelta = new Vector2(220f, 153f);
         Image descBoxImage = descBox.AddComponent<Image>();
         descBoxImage.sprite = UISprites.GetRoundedRect("DescBox", 128, 128, 10f, new Color(0.05f, 0.06f, 0.09f, 0.90f), new Color(0.09f, 0.11f, 0.16f, 0.90f), 1f, new Color(0.25f, 0.28f, 0.38f, 0.5f));
         descBoxImage.type = Image.Type.Sliced;
@@ -810,8 +870,8 @@ public class CombatSceneBootstrapper : MonoBehaviour
         GameObject descObj = CreateTextElement("DescText", descBox.transform, "Deal 6 damage.", 16, TextAlignmentOptions.Center, bold: false, autoSize: true, minSize: 12f, maxSize: 16f);
         RectTransform descRT = descObj.GetComponent<RectTransform>();
         StretchFull(descRT);
-        descRT.offsetMin = new Vector2(8, 6);
-        descRT.offsetMax = new Vector2(-8, -6);
+        descRT.offsetMin = new Vector2(10, 8);
+        descRT.offsetMax = new Vector2(-10, -8);
         TextMeshProUGUI descTMP = descObj.GetComponent<TextMeshProUGUI>();
         descTMP.color = new Color(0.92f, 0.92f, 0.95f);
 
@@ -998,6 +1058,12 @@ public class CombatSceneBootstrapper : MonoBehaviour
     // ─── UTILITY HELPERS ───
 
     private static TMP_FontAsset defaultFontAsset;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    public static void ResetStatics()
+    {
+        defaultFontAsset = null;
+    }
 
     public static TMP_FontAsset GetDefaultFont()
     {

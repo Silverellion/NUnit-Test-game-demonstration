@@ -41,6 +41,12 @@ public class CombatManager : MonoBehaviour
     public CharacterCombatVisual playerVisual;
     public CharacterCombatVisual enemyVisual;
 
+    [Header("Intro Animation References")]
+    public RectTransform backgroundRT;
+    public CanvasGroup groundFadeCanvasGroup;
+    public CanvasGroup playerStatusCanvasGroup;
+    public CanvasGroup enemyStatusCanvasGroup;
+
     // Private state
     private int playerHP;
     private int playerBlock;
@@ -92,6 +98,109 @@ public class CombatManager : MonoBehaviour
         if (defeatRestartButton != null)
             defeatRestartButton.onClick.AddListener(RestartCombat);
 
+        StartCoroutine(SceneIntroRoutine());
+    }
+
+    private IEnumerator SceneIntroRoutine()
+    {
+        // 1. Initial State: Background is fully visible at bottom, characters start outside visible screen
+        if (backgroundRT != null)
+        {
+            backgroundRT.anchoredPosition = Vector2.zero;
+            backgroundRT.localScale = Vector3.one;
+        }
+        if (groundFadeCanvasGroup != null)
+        {
+            groundFadeCanvasGroup.alpha = 1f;
+        }
+        if (playerStatusCanvasGroup != null) playerStatusCanvasGroup.alpha = 0f;
+        if (enemyStatusCanvasGroup != null) enemyStatusCanvasGroup.alpha = 0f;
+
+        Vector2 playerHome = playerVisual != null ? playerVisual.GetHomePosition() : new Vector2(-380f, -50f);
+        Vector2 enemyHome = enemyVisual != null ? enemyVisual.GetHomePosition() : new Vector2(380f, -50f);
+
+        Vector2 playerStart = new Vector2(-1350f, playerHome.y);
+        Vector2 enemyStart = new Vector2(1350f, enemyHome.y);
+
+        if (playerVisual != null && playerVisual.rectTransform != null)
+            playerVisual.rectTransform.anchoredPosition = playerStart;
+        if (enemyVisual != null && enemyVisual.rectTransform != null)
+            enemyVisual.rectTransform.anchoredPosition = enemyStart;
+
+        // Brief pause to showcase the loaded town scene
+        yield return new WaitForSeconds(0.40f);
+
+        // 2. Animate background going from bottom to up until 30% of the bottom part of the scene is empty
+        float canvasHeight = 1080f;
+        if (mainCanvas != null)
+        {
+            RectTransform canvasRT = mainCanvas.GetComponent<RectTransform>();
+            if (canvasRT != null && canvasRT.rect.height > 0)
+                canvasHeight = canvasRT.rect.height;
+        }
+        float targetY = canvasHeight * 0.30f; // Exactly 30% of the scene height
+
+        Vector2 bgStartPos = Vector2.zero;
+        Vector2 bgEndPos = new Vector2(0f, targetY);
+
+        float bgDuration = 1.35f;
+        float elapsed = 0f;
+        while (elapsed < bgDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = UITween.Evaluate(Mathf.Clamp01(elapsed / bgDuration), EaseType.EaseOutCubic);
+            if (backgroundRT != null)
+            {
+                backgroundRT.anchoredPosition = Vector2.Lerp(bgStartPos, bgEndPos, t);
+            }
+            yield return null;
+        }
+
+        if (backgroundRT != null)
+        {
+            backgroundRT.anchoredPosition = bgEndPos;
+        }
+
+        yield return new WaitForSeconds(0.15f);
+
+        // 3. Character Entrance Animation (Requirement 7)
+        // Player moves in from outside left, Enemy moves in from outside right
+        float entranceDuration = 1.25f;
+        bool playerArrived = false;
+        bool enemyArrived = false;
+
+        if (playerVisual != null)
+        {
+            playerVisual.WalkInFromOutside(playerStart, entranceDuration, () => playerArrived = true);
+        }
+        else playerArrived = true;
+
+        if (enemyVisual != null)
+        {
+            enemyVisual.WalkInFromOutside(enemyStart, entranceDuration, () => enemyArrived = true);
+        }
+        else enemyArrived = true;
+
+        while (!playerArrived || !enemyArrived)
+            yield return null;
+
+        // 4. Fade in character status HUDs (Name plates, HP bars, Enemy intent)
+        float hudDuration = 0.35f;
+        elapsed = 0f;
+        while (elapsed < hudDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / hudDuration);
+            if (playerStatusCanvasGroup != null) playerStatusCanvasGroup.alpha = t;
+            if (enemyStatusCanvasGroup != null) enemyStatusCanvasGroup.alpha = t;
+            yield return null;
+        }
+        if (playerStatusCanvasGroup != null) playerStatusCanvasGroup.alpha = 1f;
+        if (enemyStatusCanvasGroup != null) enemyStatusCanvasGroup.alpha = 1f;
+
+        yield return new WaitForSeconds(0.25f);
+
+        // 5. Begin combat
         StartCombat();
     }
 
@@ -101,6 +210,9 @@ public class CombatManager : MonoBehaviour
         isActionInProgress = false;
         isDrawingCards = false;
         enemyTurnCount = 0;
+
+        if (playerStatusCanvasGroup != null) playerStatusCanvasGroup.alpha = 1f;
+        if (enemyStatusCanvasGroup != null) enemyStatusCanvasGroup.alpha = 1f;
 
         playerHP = playerMaxHP;
         playerBlock = 0;

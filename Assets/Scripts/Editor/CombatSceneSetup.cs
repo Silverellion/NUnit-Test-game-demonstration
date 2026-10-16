@@ -34,6 +34,10 @@ public class CombatSceneSetup : EditorWindow
         int warningCount = 0;
         foreach (var graphic in Object.FindObjectsByType<UnityEngine.UI.Graphic>())
         {
+            // Character battle sprites and outlines inside SpriteContainer are intentionally flipped to face opponents
+            if (graphic.GetComponentInParent<CharacterCombatVisual>() != null)
+                continue;
+
             if (graphic.transform.lossyScale.x < 0f)
             {
                 Debug.LogWarning($"[UI Validator] Mirrored UI Graphic detected on '{graphic.gameObject.name}' (lossyScale.x = {graphic.transform.lossyScale.x})!", graphic);

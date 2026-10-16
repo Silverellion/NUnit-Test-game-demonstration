@@ -24,7 +24,7 @@ public class AnimatedBackground : MonoBehaviour
         if (backgroundImage == null)
             backgroundImage = GetComponent<Image>();
 
-        if (frames == null || frames.Length == 0)
+        if (frames == null || frames.Length == 0 || frames[0] == null || frames[0].texture == null)
         {
             LoadFrames();
         }
