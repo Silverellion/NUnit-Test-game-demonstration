@@ -154,7 +154,7 @@ public class CombatManager : MonoBehaviour
         drawPile.Add(new CardData("Heavy Strike", 2, 12, 0, 0, "Deal <color=#ff6b6b><b>12</b></color> damage.", heavyColor));
 
         // 1x Quick Study
-        drawPile.Add(new CardData("Quick Study", 1, 0, 0, 2, "Draw <color=#51cf66><b>2</b></color> cards.", utilityColor));
+        drawPile.Add(new CardData("Strategize", 1, 0, 0, 2, "Draw <color=#51cf66><b>2</b></color> cards.", utilityColor));
     }
 
     private void ShuffleDeck(List<CardData> deck)
