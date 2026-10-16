@@ -198,38 +198,47 @@ public class CombatManager : MonoBehaviour
         if (turnBanner == null) yield break;
 
         turnBanner.gameObject.SetActive(true);
+        CanvasGroup cg = turnBanner.GetComponent<CanvasGroup>();
+        if (cg == null) cg = turnBanner.gameObject.AddComponent<CanvasGroup>();
 
-        float startX = 2200f;
+        float startX = 600f;
         float centerX = 0f;
-        float exitX = -2200f;
+        float exitX = -600f;
 
-        // Start off-screen to the right
         turnBanner.anchoredPosition = new Vector2(startX, turnBanner.anchoredPosition.y);
+        turnBanner.localScale = Vector3.one * 0.95f;
+        cg.alpha = 0f;
 
-        // Phase 1: Pop out immediately going from right to center
-        float durationIn = 0.28f;
+        // Phase 1: Ease-out slide in + fade in
+        float durationIn = 0.30f;
         float elapsed = 0f;
         while (elapsed < durationIn)
         {
             elapsed += Time.deltaTime;
-            float t = 1f - Mathf.Pow(1f - Mathf.Clamp01(elapsed / durationIn), 3); // Fast ease-out
+            float t = UITween.Evaluate(Mathf.Clamp01(elapsed / durationIn), EaseType.EaseOutCubic);
             turnBanner.anchoredPosition = new Vector2(Mathf.Lerp(startX, centerX, t), turnBanner.anchoredPosition.y);
+            turnBanner.localScale = Vector3.Lerp(Vector3.one * 0.95f, Vector3.one, t);
+            cg.alpha = t;
             yield return null;
         }
 
         turnBanner.anchoredPosition = new Vector2(centerX, turnBanner.anchoredPosition.y);
+        turnBanner.localScale = Vector3.one;
+        cg.alpha = 1f;
 
-        // Phase 2: Stop briefly in the center
+        // Phase 2: Hold
         yield return new WaitForSeconds(0.40f);
 
-        // Phase 3: Sweep fast out to the left
+        // Phase 3: Ease-in slide out + fade out
         float durationOut = 0.24f;
         elapsed = 0f;
         while (elapsed < durationOut)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Pow(Mathf.Clamp01(elapsed / durationOut), 2.5f); // Fast ease-in
+            float t = UITween.Evaluate(Mathf.Clamp01(elapsed / durationOut), EaseType.EaseInQuad);
             turnBanner.anchoredPosition = new Vector2(Mathf.Lerp(centerX, exitX, t), turnBanner.anchoredPosition.y);
+            turnBanner.localScale = Vector3.Lerp(Vector3.one, Vector3.one * 0.95f, t);
+            cg.alpha = 1f - t;
             yield return null;
         }
 

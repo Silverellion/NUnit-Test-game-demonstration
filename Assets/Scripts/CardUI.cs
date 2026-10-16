@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -5,8 +6,9 @@ using UnityEngine.EventSystems;
 using TMPro;
 
 /// <summary>
-/// Visual representation of a card in the hand.
-/// Handles drag-to-play, click-to-play, and smooth hover/unhover animations.
+/// Visual representation of a card in the player's hand.
+/// Features rounded anti-aliased 9-slice frames, matched artwork from Assets/Assets/Cards,
+/// Cinzel typography, and fluid tween animations for hover, dragging, and fanning.
 /// </summary>
 public class CardUI : MonoBehaviour,
     IPointerClickHandler,
@@ -17,14 +19,14 @@ public class CardUI : MonoBehaviour,
     IEndDragHandler
 {
     [Header("Card Layout References")]
-    public Image cardBackground;
-    public Image cardBorder;
-    public Image artworkPlaceholder;
+    public Image cardBackground;       // Header banner
+    public Image cardBorder;           // Outer rounded gold / iron frame
+    public Image artworkPlaceholder;    // Center illustration
     public TextMeshProUGUI nameText;
     public TextMeshProUGUI costText;
     public TextMeshProUGUI typeText;
     public TextMeshProUGUI descriptionText;
-    public Image costCircle;
+    public Image costCircle;           // Cost gem circle
 
     [HideInInspector]
     public CardData cardData;
@@ -36,18 +38,10 @@ public class CardUI : MonoBehaviour,
     private Canvas canvas;
     private Vector2 originalPosition;
     private Quaternion originalRotation = Quaternion.identity;
-    private Vector3 originalScale = Vector3.one;
     private bool isHovered = false;
     private bool isDragging = false;
     private bool isPlayable = true;
     private CanvasGroup canvasGroup;
-    private Coroutine animCoroutine;
-
-    // Palette tokens for Slay the Spire card framing
-    private static readonly Color PLAYABLE_BORDER_COLOR = new Color(0.92f, 0.78f, 0.35f, 1f);   // Bright gold
-    private static readonly Color UNPLAYABLE_BORDER_COLOR = new Color(0.35f, 0.33f, 0.38f, 0.8f); // Weathered dark iron
-    private static readonly Color COST_AFFORDABLE_COLOR = new Color(0.12f, 0.55f, 0.95f, 1f);   // Electric blue gem
-    private static readonly Color COST_UNAFFORDABLE_COLOR = new Color(0.70f, 0.20f, 0.20f, 1f);  // Dull red
 
     void Awake()
     {
@@ -56,7 +50,6 @@ public class CardUI : MonoBehaviour,
         if (canvasGroup == null)
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
         canvas = GetComponentInParent<Canvas>();
-        originalScale = Vector3.one;
         originalRotation = rectTransform.localRotation;
     }
 
@@ -66,25 +59,55 @@ public class CardUI : MonoBehaviour,
         combatManager = manager;
         handIndex = index;
 
-        if (nameText != null) nameText.text = data.cardName;
-        if (costText != null) costText.text = data.energyCost.ToString();
-        if (descriptionText != null) descriptionText.text = data.description;
+        // 1. Text & Fonts (Cinzel)
+        if (nameText != null)
+        {
+            nameText.text = data.cardName;
+            UIFonts.ApplyTitle(nameText, autoSize: true, minSize: 11f, maxSize: 15f);
+        }
+        if (costText != null)
+        {
+            costText.text = data.energyCost.ToString();
+            UIFonts.ApplyTitle(costText, autoSize: false);
+        }
+        if (descriptionText != null)
+        {
+            descriptionText.text = data.description;
+            UIFonts.ApplyBody(descriptionText, semiBold: false, autoSize: true, minSize: 10f, maxSize: 15f);
+        }
+
+        string typeString = "CARD";
+        if (data.damage > 0)
+            typeString = "ATTACK";
+        else if (data.block > 0)
+            typeString = "SKILL";
+        else if (data.drawCards > 0)
+            typeString = "SKILL";
 
         if (typeText != null)
         {
-            if (data.damage > 0)
-                typeText.text = "ATTACK";
-            else if (data.block > 0)
-                typeText.text = "SKILL";
-            else if (data.drawCards > 0)
-                typeText.text = "SKILL";
-            else
-                typeText.text = "CARD";
+            typeText.text = typeString;
+            UIFonts.ApplyTitle(typeText, autoSize: true, minSize: 9f, maxSize: 12f);
         }
 
+        // 2. Card Artwork (Matched from Assets/Assets/Cards)
+        if (artworkPlaceholder != null)
+        {
+            Sprite art = UISprites.GetCardArtwork(data.cardName);
+            if (art != null)
+            {
+                artworkPlaceholder.sprite = art;
+                artworkPlaceholder.color = Color.white;
+                artworkPlaceholder.preserveAspect = true;
+            }
+        }
+
+        // 3. Header Banner Sprite
         if (cardBackground != null)
         {
-            cardBackground.color = data.cardColor;
+            cardBackground.sprite = UISprites.GetCardHeader(typeString);
+            cardBackground.type = Image.Type.Sliced;
+            cardBackground.color = Color.white;
         }
 
         rectTransform.localScale = Vector3.one;
@@ -100,8 +123,10 @@ public class CardUI : MonoBehaviour,
         {
             if (animate && gameObject.activeInHierarchy)
             {
-                if (animCoroutine != null) StopCoroutine(animCoroutine);
-                animCoroutine = StartCoroutine(SmoothAnimate(pos, rot, Vector3.one, 0.20f));
+                UITween.Cancel(rectTransform);
+                UITween.Move(rectTransform, pos, 0.22f, EaseType.EaseOutCubic);
+                UITween.Rotate(rectTransform, rot, 0.22f, EaseType.EaseOutCubic);
+                UITween.Scale(rectTransform, Vector3.one, 0.22f, EaseType.EaseOutCubic);
             }
             else
             {
@@ -125,12 +150,15 @@ public class CardUI : MonoBehaviour,
 
         if (cardBorder != null)
         {
-            cardBorder.color = isPlayable ? PLAYABLE_BORDER_COLOR : UNPLAYABLE_BORDER_COLOR;
+            cardBorder.sprite = isPlayable ? UISprites.CardBorderPlayable : UISprites.CardBorderUnplayable;
+            cardBorder.type = Image.Type.Sliced;
+            cardBorder.color = Color.white;
         }
 
         if (costCircle != null)
         {
-            costCircle.color = isPlayable ? COST_AFFORDABLE_COLOR : COST_UNAFFORDABLE_COLOR;
+            costCircle.sprite = isPlayable ? UISprites.CostBadgePlayable : UISprites.CostBadgeUnplayable;
+            costCircle.color = Color.white;
         }
 
         if (canvasGroup != null)
@@ -149,26 +177,22 @@ public class CardUI : MonoBehaviour,
         combatManager.OnCardClicked(cardData);
     }
 
-    // ─── SMOOTH HOVER / UNHOVER TRANSITIONS ───
+    // ─── SMOOTH HOVER / UNHOVER WITH UITWEEN ───
 
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (isDragging) return;
         isHovered = true;
 
-        if (animCoroutine != null)
-        {
-            StopCoroutine(animCoroutine);
-            animCoroutine = null;
-        }
-
-        // Smoothly lift up (+45px), rotate upright, scale slightly to 1.08x
-        Vector2 targetPos = originalPosition + new Vector2(0, 48f);
-        Vector3 targetScale = Vector3.one * 1.08f;
+        Vector2 targetPos = originalPosition + new Vector2(0, 54f);
+        Vector3 targetScale = Vector3.one * 1.10f;
         Quaternion targetRot = Quaternion.identity;
 
         transform.SetAsLastSibling();
-        animCoroutine = StartCoroutine(SmoothAnimate(targetPos, targetRot, targetScale, 0.12f));
+        UITween.Cancel(rectTransform);
+        UITween.Move(rectTransform, targetPos, 0.16f, EaseType.EaseOutCubic);
+        UITween.Rotate(rectTransform, targetRot, 0.16f, EaseType.EaseOutCubic);
+        UITween.Scale(rectTransform, targetScale, 0.16f, EaseType.EaseOutBack);
     }
 
     public void OnPointerExit(PointerEventData eventData)
@@ -176,18 +200,14 @@ public class CardUI : MonoBehaviour,
         if (isDragging) return;
         isHovered = false;
 
-        if (animCoroutine != null)
-        {
-            StopCoroutine(animCoroutine);
-            animCoroutine = null;
-        }
-
-        // Smoothly return to exact fanned hand position, fanned rotation, and 1.0x scale
-        animCoroutine = StartCoroutine(SmoothAnimate(originalPosition, originalRotation, Vector3.one, 0.12f, () =>
+        UITween.Cancel(rectTransform);
+        UITween.Move(rectTransform, originalPosition, 0.16f, EaseType.EaseOutCubic);
+        UITween.Rotate(rectTransform, originalRotation, 0.16f, EaseType.EaseOutCubic);
+        UITween.Scale(rectTransform, Vector3.one, 0.16f, EaseType.EaseOutCubic, () =>
         {
             if (!isHovered && !isDragging)
                 transform.SetSiblingIndex(handIndex);
-        }));
+        });
     }
 
     // ─── DRAG TO TARGET (Attack to Enemy, Defend/Buff to Player) ───
@@ -199,18 +219,14 @@ public class CardUI : MonoBehaviour,
         isDragging = true;
         isHovered = false;
 
-        if (animCoroutine != null)
-        {
-            StopCoroutine(animCoroutine);
-            animCoroutine = null;
-        }
+        UITween.Cancel(rectTransform);
 
         if (canvasGroup != null)
         {
             canvasGroup.blocksRaycasts = false;
         }
 
-        rectTransform.localScale = Vector3.one * 1.08f;
+        rectTransform.localScale = Vector3.one * 1.10f;
         rectTransform.localRotation = Quaternion.identity;
         transform.SetAsLastSibling();
 
@@ -253,35 +269,14 @@ public class CardUI : MonoBehaviour,
         if (!played)
         {
             // Cancelled: smoothly glide back into exact fanned hand slot
-            animCoroutine = StartCoroutine(SmoothAnimate(originalPosition, originalRotation, Vector3.one, 0.15f, () =>
+            UITween.Cancel(rectTransform);
+            UITween.Move(rectTransform, originalPosition, 0.20f, EaseType.EaseOutCubic);
+            UITween.Rotate(rectTransform, originalRotation, 0.20f, EaseType.EaseOutCubic);
+            UITween.Scale(rectTransform, Vector3.one, 0.20f, EaseType.EaseOutCubic, () =>
             {
                 transform.SetSiblingIndex(handIndex);
-            }));
+            });
         }
-    }
-
-    private IEnumerator SmoothAnimate(Vector2 targetPos, Quaternion targetRot, Vector3 targetScale, float duration, System.Action onComplete = null)
-    {
-        Vector2 startPos = rectTransform.anchoredPosition;
-        Quaternion startRot = rectTransform.localRotation;
-        Vector3 startScale = rectTransform.localScale;
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
-            rectTransform.anchoredPosition = Vector2.Lerp(startPos, targetPos, t);
-            rectTransform.localRotation = Quaternion.Slerp(startRot, targetRot, t);
-            rectTransform.localScale = Vector3.Lerp(startScale, targetScale, t);
-            yield return null;
-        }
-
-        rectTransform.anchoredPosition = targetPos;
-        rectTransform.localRotation = targetRot;
-        rectTransform.localScale = targetScale;
-        animCoroutine = null;
-        onComplete?.Invoke();
     }
 
     public void ResetHover()
@@ -291,6 +286,7 @@ public class CardUI : MonoBehaviour,
             isHovered = false;
             isDragging = false;
             if (canvasGroup != null) canvasGroup.blocksRaycasts = true;
+            UITween.Cancel(rectTransform);
             rectTransform.localScale = Vector3.one;
             rectTransform.anchoredPosition = originalPosition;
             rectTransform.localRotation = originalRotation;

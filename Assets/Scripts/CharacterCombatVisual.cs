@@ -28,6 +28,7 @@ public class CharacterCombatVisual : MonoBehaviour
 
     [Header("Components")]
     public Image characterImage;
+    public RectTransform spriteContainer;
     public RectTransform rectTransform;
 
     [Header("Targeting Feedback")]
@@ -39,6 +40,7 @@ public class CharacterCombatVisual : MonoBehaviour
     private Vector3 originalScale = Vector3.one;
     private bool isDead = false;
     public bool baseFacingRight = true;
+    public bool currentFacingRight = true;
     private bool isDirectHover = false;
 
     private const float PIXEL_SCALE = 8f; // 8x crisp pixel scaling for 1600x900 resolution
@@ -48,13 +50,17 @@ public class CharacterCombatVisual : MonoBehaviour
         if (rectTransform == null)
             rectTransform = GetComponent<RectTransform>();
         if (characterImage == null)
-            characterImage = GetComponent<Image>();
+            characterImage = GetComponentInChildren<Image>();
+        if (spriteContainer == null && characterImage != null)
+            spriteContainer = characterImage.rectTransform;
         if (rectTransform != null)
         {
             rectTransform.pivot = new Vector2(0.5f, 0f); // Feet anchored to ground
             homePosition = rectTransform.anchoredPosition;
             originalScale = Vector3.one;
+            rectTransform.localScale = Vector3.one;
         }
+        currentFacingRight = baseFacingRight;
     }
 
     /// <summary>
@@ -72,20 +78,17 @@ public class CharacterCombatVisual : MonoBehaviour
             s.texture.filterMode = FilterMode.Point;
         }
 
-        if (rectTransform != null)
+        RectTransform st = spriteContainer != null ? spriteContainer : characterImage.rectTransform;
+        if (st != null)
         {
-            rectTransform.sizeDelta = new Vector2(s.rect.width * PIXEL_SCALE, s.rect.height * PIXEL_SCALE);
+            st.sizeDelta = new Vector2(s.rect.width * PIXEL_SCALE, s.rect.height * PIXEL_SCALE);
         }
     }
 
     public void SetFacing(bool faceRight)
     {
-        if (rectTransform != null)
-        {
-            float sign = faceRight ? 1f : -1f;
-            float scaleMul = isDirectHover ? 1.08f : 1.0f;
-            rectTransform.localScale = new Vector3(Mathf.Abs(originalScale.x) * sign * scaleMul, originalScale.y * scaleMul, originalScale.z);
-        }
+        currentFacingRight = faceRight;
+        UpdateVisualScale();
     }
 
     public void SetTargetHighlighted(bool highlighted, bool directHover, Color highlightColor)
@@ -104,11 +107,21 @@ public class CharacterCombatVisual : MonoBehaviour
             }
         }
 
+        UpdateVisualScale();
+    }
+
+    private void UpdateVisualScale()
+    {
+        RectTransform targetRT = spriteContainer != null ? spriteContainer : (characterImage != null ? characterImage.rectTransform : null);
+        if (targetRT != null)
+        {
+            float sign = currentFacingRight ? 1f : -1f;
+            float scaleMul = isDirectHover ? 1.08f : 1.0f;
+            targetRT.localScale = new Vector3(Mathf.Abs(originalScale.x) * sign * scaleMul, originalScale.y * scaleMul, originalScale.z);
+        }
         if (rectTransform != null)
         {
-            float scaleMul = directHover ? 1.08f : 1.0f;
-            float sign = (rectTransform.localScale.x >= 0) ? 1f : -1f;
-            rectTransform.localScale = new Vector3(Mathf.Abs(originalScale.x) * sign * scaleMul, originalScale.y * scaleMul, originalScale.z);
+            rectTransform.localScale = Vector3.one;
         }
     }
 

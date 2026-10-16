@@ -3,7 +3,8 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// Displays the player's HP bar, block, and energy counters.
+/// Displays the player's HP bar, block, energy counters, and pile counts
+/// with styled Cinzel typography and smooth UI pop-ins.
 /// </summary>
 public class PlayerUI : MonoBehaviour
 {
@@ -34,7 +35,31 @@ public class PlayerUI : MonoBehaviour
     public void Initialize(string name, int hp)
     {
         maxHP = hp;
-        if (nameText != null) nameText.text = name;
+        if (nameText != null)
+        {
+            nameText.text = name;
+            UIFonts.ApplyBody(nameText, semiBold: true, autoSize: true, minSize: 11f, maxSize: 18f);
+        }
+        if (hpText != null)
+        {
+            UIFonts.ApplyBody(hpText, semiBold: true, autoSize: false);
+        }
+        if (blockText != null)
+        {
+            UIFonts.ApplyBody(blockText, semiBold: true, autoSize: false);
+        }
+        if (energyText != null)
+        {
+            UIFonts.ApplyTitle(energyText, autoSize: false);
+        }
+        if (drawPileText != null)
+        {
+            UIFonts.ApplyTitle(drawPileText, autoSize: false);
+        }
+        if (discardPileText != null)
+        {
+            UIFonts.ApplyTitle(discardPileText, autoSize: false);
+        }
         UpdateHP(hp, 0);
     }
 
@@ -61,10 +86,15 @@ public class PlayerUI : MonoBehaviour
                 hpFillImage.color = Color.Lerp(new Color(0.85f, 0.15f, 0.15f), new Color(0.9f, 0.7f, 0.1f), pct * 2f);
         }
 
-        // Block display
+        // Block display with pop-in
         if (blockContainer != null)
         {
+            bool wasActive = blockContainer.activeSelf;
             blockContainer.SetActive(block > 0);
+            if (block > 0 && !wasActive)
+            {
+                UITween.PopIn(blockContainer.GetComponent<RectTransform>(), 0.30f);
+            }
             if (blockText != null)
                 blockText.text = block.ToString();
         }
@@ -74,7 +104,7 @@ public class PlayerUI : MonoBehaviour
     {
         if (energyText != null)
         {
-            energyText.text = $"{current}/{max}";
+            energyText.text = $"{current}/{max}\n<size=12>ENERGY</size>";
         }
     }
 

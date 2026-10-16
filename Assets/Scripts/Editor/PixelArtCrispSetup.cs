@@ -19,12 +19,31 @@ public static class PixelArtCrispSetup
     [MenuItem("Tools/Make Pixel Art Crisp & Sharp")]
     public static void MakePixelArtCrisp()
     {
-        string[] textureGuids = AssetDatabase.FindAssets("t:Texture2D", new[] { "Assets/Assets" });
+        // Only target pixel-art character sprite and background folders
+        string[] pixelArtFolders = new[]
+        {
+            "Assets/Assets/Soldier with shadows",
+            "Assets/Assets/Orc with shadows",
+            "Assets/Assets/Background"
+        };
+
+        string[] textureGuids = AssetDatabase.FindAssets("t:Texture2D", pixelArtFolders);
         int updatedCount = 0;
 
         foreach (string guid in textureGuids)
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
+            if (string.IsNullOrEmpty(path)) continue;
+
+            // Never apply Point filtering to font atlases, smooth UI, or card art
+            if (path.IndexOf("Font", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                path.IndexOf("Atlas", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                path.IndexOf("Card", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                path.IndexOf("UI", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                continue;
+            }
+
             TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
             if (importer != null)
             {
@@ -50,7 +69,34 @@ public static class PixelArtCrispSetup
 
         if (updatedCount > 0)
         {
-            Debug.Log($"[PixelArtCrispSetup] Updated {updatedCount} textures to FilterMode.Point (Crisp & Sharp).");
+            Debug.Log($"[PixelArtCrispSetup] Updated {updatedCount} pixel-art textures to FilterMode.Point (Crisp & Sharp).");
+        }
+
+        // Ensure smooth UI, card art, and icons use Bilinear filtering
+        string[] smoothFolders = new[]
+        {
+            "Assets/Assets/Cards",
+            "Assets/Assets/AdventureGameIconPack"
+        };
+
+        string[] smoothGuids = AssetDatabase.FindAssets("t:Texture2D", smoothFolders);
+        int smoothUpdatedCount = 0;
+
+        foreach (string guid in smoothGuids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer != null && importer.filterMode != FilterMode.Bilinear)
+            {
+                importer.filterMode = FilterMode.Bilinear;
+                importer.SaveAndReimport();
+                smoothUpdatedCount++;
+            }
+        }
+
+        if (smoothUpdatedCount > 0)
+        {
+            Debug.Log($"[PixelArtCrispSetup] Updated {smoothUpdatedCount} smooth UI/card textures to FilterMode.Bilinear.");
         }
     }
 }

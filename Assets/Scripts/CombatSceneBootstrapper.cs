@@ -53,7 +53,7 @@ public class CombatSceneBootstrapper : MonoBehaviour
 
         CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1600, 900);
+        scaler.referenceResolution = new Vector2(1920, 1080);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0.5f;
         scaler.dynamicPixelsPerUnit = 4f;
@@ -92,7 +92,7 @@ public class CombatSceneBootstrapper : MonoBehaviour
         RectTransform bgRT = bgObj.GetComponent<RectTransform>();
         StretchFull(bgRT);
         Image bgImage = bgObj.AddComponent<Image>();
-        bgImage.color = new Color(0.09f, 0.09f, 0.13f, 1f); // Deep dungeon slate
+        bgImage.color = new Color(0.08f, 0.08f, 0.12f, 1f); // Deep dungeon slate
 
         // ─── BATTLEFIELD ARENA (Top 72% of screen) ───
         GameObject arenaArea = CreateUIElement("BattlefieldArea", canvasObj.transform);
@@ -102,14 +102,15 @@ public class CombatSceneBootstrapper : MonoBehaviour
         arenaRT.offsetMin = Vector2.zero;
         arenaRT.offsetMax = Vector2.zero;
 
-        // Subtle arena floor line
+        // Subtle arena floor line (smooth fade, rounded ends)
         GameObject floorLine = CreateUIElement("ArenaFloor", arenaArea.transform);
         RectTransform floorRT = floorLine.GetComponent<RectTransform>();
         floorRT.anchorMin = new Vector2(0.05f, 0.32f);
         floorRT.anchorMax = new Vector2(0.95f, 0.32f);
-        floorRT.sizeDelta = new Vector2(0, 4f);
+        floorRT.sizeDelta = new Vector2(0, 6f);
         Image floorImage = floorLine.AddComponent<Image>();
-        floorImage.color = new Color(0.20f, 0.20f, 0.28f, 0.45f);
+        floorImage.sprite = UISprites.DividerLine;
+        floorImage.color = Color.white;
 
         // ─── SOLDIER (Left side of battlefield) ───
         PlayerUI playerUI = BuildPlayerCharacter(arenaArea.transform, out CharacterCombatVisual playerVisual);
@@ -125,19 +126,11 @@ public class CombatSceneBootstrapper : MonoBehaviour
         handAreaRT.offsetMin = Vector2.zero;
         handAreaRT.offsetMax = Vector2.zero;
 
-        // Dark hand area backing
+        // Dark navy hand area backing with rounded top corners, gradient & gold top rim
         Image handBg = handArea.AddComponent<Image>();
-        handBg.color = new Color(0.06f, 0.06f, 0.09f, 0.96f);
-
-        // Top decorative gold rim for hand area
-        GameObject handBorder = CreateUIElement("HandTopBorder", handArea.transform);
-        RectTransform borderRT = handBorder.GetComponent<RectTransform>();
-        borderRT.anchorMin = new Vector2(0, 1f);
-        borderRT.anchorMax = new Vector2(1, 1f);
-        borderRT.pivot = new Vector2(0.5f, 1f);
-        borderRT.sizeDelta = new Vector2(0, 3f);
-        Image borderImage = handBorder.AddComponent<Image>();
-        borderImage.color = new Color(0.75f, 0.60f, 0.28f, 0.75f); // Worn gold trim
+        handBg.sprite = UISprites.HandPanel;
+        handBg.type = Image.Type.Sliced;
+        handBg.color = Color.white;
 
         // ─── HAND CONTAINER (Centered in the middle of the screen!) ───
         GameObject handContainer = CreateUIElement("HandContainer", handArea.transform);
@@ -149,7 +142,7 @@ public class CombatSceneBootstrapper : MonoBehaviour
         handContRT.sizeDelta = new Vector2(860, 235);
 
         // ─── TURN INDICATOR (Above Hand) ───
-        GameObject turnIndicator = CreateTextElement("TurnIndicator", canvasObj.transform, "YOUR TURN", 28, TextAlignmentOptions.Center);
+        GameObject turnIndicator = CreateTextElement("TurnIndicator", canvasObj.transform, "YOUR TURN", 28, TextAlignmentOptions.Center, bold: true);
         RectTransform turnRT = turnIndicator.GetComponent<RectTransform>();
         turnRT.anchorMin = new Vector2(0.5f, 0.29f);
         turnRT.anchorMax = new Vector2(0.5f, 0.29f);
@@ -158,7 +151,6 @@ public class CombatSceneBootstrapper : MonoBehaviour
         turnRT.sizeDelta = new Vector2(300, 36);
         TextMeshProUGUI turnText = turnIndicator.GetComponent<TextMeshProUGUI>();
         turnText.color = new Color(0.95f, 0.85f, 0.50f);
-        turnText.fontStyle = FontStyles.Bold;
 
         // ─── ENERGY ORB (Bottom Left of screen) ───
         GameObject energyOrb = CreateUIElement("EnergyOrb", handArea.transform);
@@ -167,28 +159,28 @@ public class CombatSceneBootstrapper : MonoBehaviour
         energyRT.anchorMax = new Vector2(0, 0.5f);
         energyRT.pivot = new Vector2(0.5f, 0.5f);
         energyRT.anchoredPosition = new Vector2(130f, 0f);
-        energyRT.sizeDelta = new Vector2(85, 85);
+        energyRT.sizeDelta = new Vector2(90, 90);
 
         Image energyBg = energyOrb.AddComponent<Image>();
-        energyBg.color = new Color(0.10f, 0.40f, 0.80f, 1f); // Glowing blue orb
+        energyBg.sprite = UISprites.CostBadgePlayable;
+        energyBg.color = Color.white;
 
-        GameObject energyTextObj = CreateTextElement("EnergyText", energyOrb.transform, "3/3\n<size=12>ENERGY</size>", 26, TextAlignmentOptions.Center);
+        GameObject energyTextObj = CreateTextElement("EnergyText", energyOrb.transform, "3/3\n<size=12>ENERGY</size>", 26, TextAlignmentOptions.Center, bold: true);
         RectTransform energyTextRT = energyTextObj.GetComponent<RectTransform>();
         StretchFull(energyTextRT);
         TextMeshProUGUI energyTMP = energyTextObj.GetComponent<TextMeshProUGUI>();
         energyTMP.color = Color.white;
-        energyTMP.fontStyle = FontStyles.Bold;
         playerUI.energyText = energyTMP;
 
         // ─── END TURN BUTTON (Bottom Right of screen) ───
         GameObject endTurnBtn = CreateButton("EndTurnButton", handArea.transform, "END TURN",
-            new Color(0.65f, 0.22f, 0.18f), new Color(0.95f, 0.88f, 0.65f));
+            new Color(0.65f, 0.22f, 0.18f), new Color(0.98f, 0.92f, 0.75f), UISprites.EndTurnButton);
         RectTransform endTurnRT = endTurnBtn.GetComponent<RectTransform>();
         endTurnRT.anchorMin = new Vector2(1, 0.5f);
         endTurnRT.anchorMax = new Vector2(1, 0.5f);
         endTurnRT.pivot = new Vector2(0.5f, 0.5f);
         endTurnRT.anchoredPosition = new Vector2(-130f, 0f);
-        endTurnRT.sizeDelta = new Vector2(145, 52);
+        endTurnRT.sizeDelta = new Vector2(155, 54);
 
         // ─── DRAW PILE (Far Bottom Left) ───
         GameObject drawPileObj = BuildPileBadge("DrawPile", handArea.transform,
@@ -238,7 +230,40 @@ public class CombatSceneBootstrapper : MonoBehaviour
         combatManager.defeatRestartButton = defeatPanel.GetComponentInChildren<Button>(true);
         combatManager.damagePopupPrefab = popupPrefab;
         combatManager.mainCanvas = mainCanvas;
+
+#if UNITY_EDITOR
+        ValidateSceneUI();
+#endif
     }
+
+#if UNITY_EDITOR
+    public static void ValidateSceneUI()
+    {
+        int warningCount = 0;
+        foreach (var graphic in FindObjectsByType<Graphic>())
+        {
+            if (graphic.transform.lossyScale.x < 0f)
+            {
+                Debug.LogWarning($"[UI Validator] Mirrored UI Graphic detected on '{graphic.gameObject.name}' (lossyScale.x = {graphic.transform.lossyScale.x})!", graphic);
+                warningCount++;
+            }
+        }
+
+        foreach (var tmp in FindObjectsByType<TMP_Text>())
+        {
+            if (tmp.transform.lossyScale.x < 0f)
+            {
+                Debug.LogWarning($"[UI Validator] Mirrored TMP_Text detected on '{tmp.gameObject.name}' (lossyScale.x = {tmp.transform.lossyScale.x})!", tmp);
+                warningCount++;
+            }
+        }
+
+        if (warningCount == 0)
+        {
+            Debug.Log("[UI Validator] Validation passed: No mirrored TMP_Text or UI Graphic transforms detected.");
+        }
+    }
+#endif
 
     // ─── SOLDIER BUILDER ───
 
@@ -265,11 +290,20 @@ public class CombatSceneBootstrapper : MonoBehaviour
         indImg.raycastTarget = false;
         targetInd.SetActive(false);
 
-        Image spriteImage = playerRoot.AddComponent<Image>();
+        GameObject spriteObj = CreateUIElement("Sprite", playerRoot.transform);
+        RectTransform spriteRT = spriteObj.GetComponent<RectTransform>();
+        spriteRT.anchorMin = new Vector2(0.5f, 0f);
+        spriteRT.anchorMax = new Vector2(0.5f, 0f);
+        spriteRT.pivot = new Vector2(0.5f, 0f);
+        spriteRT.anchoredPosition = Vector2.zero;
+        spriteRT.sizeDelta = new Vector2(152, 184);
+
+        Image spriteImage = spriteObj.AddComponent<Image>();
         spriteImage.raycastTarget = false;
 
         visual = playerRoot.AddComponent<CharacterCombatVisual>();
         visual.characterImage = spriteImage;
+        visual.spriteContainer = spriteRT;
         visual.rectTransform = rootRT;
         visual.targetIndicator = targetInd;
         visual.baseFacingRight = true;
@@ -297,18 +331,25 @@ public class CombatSceneBootstrapper : MonoBehaviour
         statusRT.anchorMax = new Vector2(0.5f, 0);
         statusRT.pivot = new Vector2(0.5f, 1f);
         statusRT.anchoredPosition = new Vector2(0f, -12f);
-        statusRT.sizeDelta = new Vector2(180, 46);
+        statusRT.sizeDelta = new Vector2(190, 52);
 
-        // Name
-        GameObject nameObj = CreateTextElement("Name", statusObj.transform, "SOLDIER", 18, TextAlignmentOptions.Center);
+        // Name plate
+        GameObject nameObj = CreateUIElement("NamePlate", statusObj.transform);
         RectTransform nameRT = nameObj.GetComponent<RectTransform>();
         nameRT.anchorMin = new Vector2(0, 0.55f);
         nameRT.anchorMax = new Vector2(1, 1f);
         nameRT.offsetMin = Vector2.zero;
         nameRT.offsetMax = Vector2.zero;
-        TextMeshProUGUI nameTMP = nameObj.GetComponent<TextMeshProUGUI>();
-        nameTMP.color = new Color(0.92f, 0.85f, 0.65f);
-        nameTMP.fontStyle = FontStyles.Bold;
+        Image nameBg = nameObj.AddComponent<Image>();
+        nameBg.sprite = UISprites.NamePlate;
+        nameBg.type = Image.Type.Sliced;
+        nameBg.color = Color.white;
+
+        GameObject nameTextObj = CreateTextElement("Name", nameObj.transform, "SOLDIER", 16, TextAlignmentOptions.Center, bold: true, autoSize: true, minSize: 11f, maxSize: 18f);
+        RectTransform ntRT = nameTextObj.GetComponent<RectTransform>();
+        StretchFull(ntRT);
+        TextMeshProUGUI nameTMP = nameTextObj.GetComponent<TextMeshProUGUI>();
+        nameTMP.color = new Color(0.95f, 0.90f, 0.75f);
         playerUI.nameText = nameTMP;
 
         // HP Bar
@@ -340,15 +381,24 @@ public class CombatSceneBootstrapper : MonoBehaviour
         indImg.raycastTarget = false;
         targetInd.SetActive(false);
 
-        Image spriteImage = enemyRoot.AddComponent<Image>();
+        GameObject spriteObj = CreateUIElement("Sprite", enemyRoot.transform);
+        RectTransform spriteRT = spriteObj.GetComponent<RectTransform>();
+        spriteRT.anchorMin = new Vector2(0.5f, 0f);
+        spriteRT.anchorMax = new Vector2(0.5f, 0f);
+        spriteRT.pivot = new Vector2(0.5f, 0f);
+        spriteRT.anchoredPosition = Vector2.zero;
+        spriteRT.sizeDelta = new Vector2(192, 192);
+
+        Image spriteImage = spriteObj.AddComponent<Image>();
         spriteImage.raycastTarget = false;
 
         visual = enemyRoot.AddComponent<CharacterCombatVisual>();
         visual.characterImage = spriteImage;
+        visual.spriteContainer = spriteRT;
         visual.rectTransform = rootRT;
         visual.targetIndicator = targetInd;
         visual.baseFacingRight = false;
-        visual.SetFacing(false); // Orc faces left towards soldier
+        visual.SetFacing(false); // Orc faces left towards soldier, only sprite is flipped
         visual.SetHomePosition(new Vector2(380f, -50f));
 
 #if UNITY_EDITOR
@@ -375,18 +425,25 @@ public class CombatSceneBootstrapper : MonoBehaviour
         statusRT.anchorMax = new Vector2(0.5f, 0);
         statusRT.pivot = new Vector2(0.5f, 1f);
         statusRT.anchoredPosition = new Vector2(0f, -12f);
-        statusRT.sizeDelta = new Vector2(180, 46);
+        statusRT.sizeDelta = new Vector2(190, 52);
 
-        // Name
-        GameObject nameObj = CreateTextElement("Name", statusObj.transform, "ORC", 18, TextAlignmentOptions.Center);
+        // Name plate
+        GameObject nameObj = CreateUIElement("NamePlate", statusObj.transform);
         RectTransform nameRT = nameObj.GetComponent<RectTransform>();
         nameRT.anchorMin = new Vector2(0, 0.55f);
         nameRT.anchorMax = new Vector2(1, 1f);
         nameRT.offsetMin = Vector2.zero;
         nameRT.offsetMax = Vector2.zero;
-        TextMeshProUGUI nameTMP = nameObj.GetComponent<TextMeshProUGUI>();
-        nameTMP.color = new Color(0.95f, 0.70f, 0.65f);
-        nameTMP.fontStyle = FontStyles.Bold;
+        Image nameBg = nameObj.AddComponent<Image>();
+        nameBg.sprite = UISprites.NamePlate;
+        nameBg.type = Image.Type.Sliced;
+        nameBg.color = Color.white;
+
+        GameObject nameTextObj = CreateTextElement("Name", nameObj.transform, "ORC", 16, TextAlignmentOptions.Center, bold: true, autoSize: true, minSize: 11f, maxSize: 18f);
+        RectTransform ntRT = nameTextObj.GetComponent<RectTransform>();
+        StretchFull(ntRT);
+        TextMeshProUGUI nameTMP = nameTextObj.GetComponent<TextMeshProUGUI>();
+        nameTMP.color = new Color(0.98f, 0.78f, 0.72f);
         enemyUI.nameText = nameTMP;
 
         // HP Bar
@@ -400,20 +457,38 @@ public class CombatSceneBootstrapper : MonoBehaviour
         badgeRT.anchorMin = new Vector2(0.5f, 1f);
         badgeRT.anchorMax = new Vector2(0.5f, 1f);
         badgeRT.pivot = new Vector2(0.5f, 0f);
-        badgeRT.anchoredPosition = new Vector2(0f, 15f);
-        badgeRT.sizeDelta = new Vector2(110, 42);
+        badgeRT.anchoredPosition = new Vector2(0f, 16f);
+        badgeRT.sizeDelta = new Vector2(120, 44);
 
         Image badgeBg = intentBadge.AddComponent<Image>();
-        badgeBg.color = new Color(0.18f, 0.12f, 0.14f, 0.90f);
+        badgeBg.sprite = UISprites.IntentBadgeAttack;
+        badgeBg.type = Image.Type.Sliced;
+        badgeBg.color = Color.white;
 
-        GameObject intentTextObj = CreateTextElement("IntentText", intentBadge.transform, "ATK 8", 20, TextAlignmentOptions.Center);
+        // Intent Icon (Sword / Shield) on left
+        GameObject iconObj = CreateUIElement("IntentIcon", intentBadge.transform);
+        RectTransform iconRT = iconObj.GetComponent<RectTransform>();
+        iconRT.anchorMin = new Vector2(0f, 0.5f);
+        iconRT.anchorMax = new Vector2(0f, 0.5f);
+        iconRT.pivot = new Vector2(0.5f, 0.5f);
+        iconRT.anchoredPosition = new Vector2(24f, 0f);
+        iconRT.sizeDelta = new Vector2(26, 26);
+        Image iconImg = iconObj.AddComponent<Image>();
+        iconImg.sprite = UISprites.GetSwordIcon();
+        iconImg.preserveAspect = true;
+        iconImg.raycastTarget = false;
+
+        GameObject intentTextObj = CreateTextElement("IntentText", intentBadge.transform, "ATK 8", 16, TextAlignmentOptions.Center, bold: true, autoSize: true, minSize: 10f, maxSize: 16f);
         RectTransform intentTextRT = intentTextObj.GetComponent<RectTransform>();
-        StretchFull(intentTextRT);
+        intentTextRT.anchorMin = new Vector2(0.35f, 0f);
+        intentTextRT.anchorMax = new Vector2(1f, 1f);
+        intentTextRT.offsetMin = Vector2.zero;
+        intentTextRT.offsetMax = Vector2.zero;
         TextMeshProUGUI intentTMP = intentTextObj.GetComponent<TextMeshProUGUI>();
-        intentTMP.color = new Color(1f, 0.40f, 0.40f);
-        intentTMP.fontStyle = FontStyles.Bold;
+        intentTMP.color = Color.white;
 
         enemyUI.intentContainer = intentBadge;
+        enemyUI.intentIcon = iconImg;
         enemyUI.intentText = intentTMP;
     }
 
@@ -426,9 +501,11 @@ public class CombatSceneBootstrapper : MonoBehaviour
         barRT.offsetMin = Vector2.zero;
         barRT.offsetMax = Vector2.zero;
 
-        // Bar background
+        // Bar background track
         Image bgImg = barRoot.AddComponent<Image>();
-        bgImg.color = new Color(0.12f, 0.12f, 0.16f, 1f);
+        bgImg.sprite = UISprites.BarTrack;
+        bgImg.type = Image.Type.Sliced;
+        bgImg.color = Color.white;
 
         // Fill area
         GameObject fillArea = CreateUIElement("FillArea", barRoot.transform);
@@ -439,6 +516,8 @@ public class CombatSceneBootstrapper : MonoBehaviour
         RectTransform fillImgRT = fillObj.GetComponent<RectTransform>();
         StretchFull(fillImgRT);
         Image fillImg = fillObj.AddComponent<Image>();
+        fillImg.sprite = UISprites.BarFill;
+        fillImg.type = Image.Type.Sliced;
         fillImg.color = new Color(0.25f, 0.80f, 0.35f, 1f);
 
         Slider slider = barRoot.AddComponent<Slider>();
@@ -448,12 +527,11 @@ public class CombatSceneBootstrapper : MonoBehaviour
         slider.value = 60;
         slider.interactable = false;
 
-        GameObject hpTextObj = CreateTextElement("HPText", barRoot.transform, "60/60", 14, TextAlignmentOptions.Center);
+        GameObject hpTextObj = CreateTextElement("HPText", barRoot.transform, "60/60", 13, TextAlignmentOptions.Center, bold: false);
         RectTransform textRT = hpTextObj.GetComponent<RectTransform>();
         StretchFull(textRT);
         TextMeshProUGUI hpTMP = hpTextObj.GetComponent<TextMeshProUGUI>();
         hpTMP.color = Color.white;
-        hpTMP.fontStyle = FontStyles.Bold;
 
         // Block badge
         GameObject blockBadge = CreateUIElement("BlockBadge", barRoot.transform);
@@ -462,17 +540,18 @@ public class CombatSceneBootstrapper : MonoBehaviour
         blockRT.anchorMax = new Vector2(0, 0.5f);
         blockRT.pivot = new Vector2(1f, 0.5f);
         blockRT.anchoredPosition = new Vector2(-6f, 0f);
-        blockRT.sizeDelta = new Vector2(32, 32);
+        blockRT.sizeDelta = new Vector2(46, 28);
 
         Image blockBg = blockBadge.AddComponent<Image>();
-        blockBg.color = new Color(0.18f, 0.45f, 0.85f, 1f);
+        blockBg.sprite = UISprites.BlockBadge;
+        blockBg.type = Image.Type.Sliced;
+        blockBg.color = Color.white;
 
-        GameObject blockTextObj = CreateTextElement("BlockText", blockBadge.transform, "0", 14, TextAlignmentOptions.Center);
+        GameObject blockTextObj = CreateTextElement("BlockText", blockBadge.transform, "0", 14, TextAlignmentOptions.Center, bold: true);
         RectTransform btRT = blockTextObj.GetComponent<RectTransform>();
         StretchFull(btRT);
         TextMeshProUGUI blockTMP = blockTextObj.GetComponent<TextMeshProUGUI>();
         blockTMP.color = Color.white;
-        blockTMP.fontStyle = FontStyles.Bold;
 
         blockBadge.SetActive(false);
 
@@ -493,7 +572,9 @@ public class CombatSceneBootstrapper : MonoBehaviour
         barRT.offsetMax = Vector2.zero;
 
         Image bgImg = barRoot.AddComponent<Image>();
-        bgImg.color = new Color(0.12f, 0.12f, 0.16f, 1f);
+        bgImg.sprite = UISprites.BarTrack;
+        bgImg.type = Image.Type.Sliced;
+        bgImg.color = Color.white;
 
         GameObject fillArea = CreateUIElement("FillArea", barRoot.transform);
         RectTransform fillRT = fillArea.GetComponent<RectTransform>();
@@ -503,6 +584,8 @@ public class CombatSceneBootstrapper : MonoBehaviour
         RectTransform fillImgRT = fillObj.GetComponent<RectTransform>();
         StretchFull(fillImgRT);
         Image fillImg = fillObj.AddComponent<Image>();
+        fillImg.sprite = UISprites.BarFill;
+        fillImg.type = Image.Type.Sliced;
         fillImg.color = new Color(0.85f, 0.25f, 0.25f, 1f);
 
         Slider slider = barRoot.AddComponent<Slider>();
@@ -512,12 +595,11 @@ public class CombatSceneBootstrapper : MonoBehaviour
         slider.value = 50;
         slider.interactable = false;
 
-        GameObject hpTextObj = CreateTextElement("HPText", barRoot.transform, "50/50", 14, TextAlignmentOptions.Center);
+        GameObject hpTextObj = CreateTextElement("HPText", barRoot.transform, "50/50", 13, TextAlignmentOptions.Center, bold: false);
         RectTransform textRT = hpTextObj.GetComponent<RectTransform>();
         StretchFull(textRT);
         TextMeshProUGUI hpTMP = hpTextObj.GetComponent<TextMeshProUGUI>();
         hpTMP.color = Color.white;
-        hpTMP.fontStyle = FontStyles.Bold;
 
         // Block badge
         GameObject blockBadge = CreateUIElement("BlockBadge", barRoot.transform);
@@ -526,17 +608,18 @@ public class CombatSceneBootstrapper : MonoBehaviour
         blockRT.anchorMax = new Vector2(1, 0.5f);
         blockRT.pivot = new Vector2(0f, 0.5f);
         blockRT.anchoredPosition = new Vector2(6f, 0f);
-        blockRT.sizeDelta = new Vector2(32, 32);
+        blockRT.sizeDelta = new Vector2(46, 28);
 
         Image blockBg = blockBadge.AddComponent<Image>();
-        blockBg.color = new Color(0.18f, 0.45f, 0.85f, 1f);
+        blockBg.sprite = UISprites.BlockBadge;
+        blockBg.type = Image.Type.Sliced;
+        blockBg.color = Color.white;
 
-        GameObject blockTextObj = CreateTextElement("BlockText", blockBadge.transform, "0", 14, TextAlignmentOptions.Center);
+        GameObject blockTextObj = CreateTextElement("BlockText", blockBadge.transform, "0", 14, TextAlignmentOptions.Center, bold: true);
         RectTransform btRT = blockTextObj.GetComponent<RectTransform>();
         StretchFull(btRT);
         TextMeshProUGUI blockTMP = blockTextObj.GetComponent<TextMeshProUGUI>();
         blockTMP.color = Color.white;
-        blockTMP.fontStyle = FontStyles.Bold;
 
         blockBadge.SetActive(false);
 
@@ -553,40 +636,58 @@ public class CombatSceneBootstrapper : MonoBehaviour
     {
         GameObject card = CreateUIElement("CardTemplate", mainCanvas.transform);
         RectTransform cardRT = card.GetComponent<RectTransform>();
-        cardRT.sizeDelta = new Vector2(155, 225);
+        cardRT.sizeDelta = new Vector2(165, 238);
         cardRT.pivot = new Vector2(0.5f, 0.5f);
 
-        // 1. Outer Dark Illustrated Fantasy Frame Border
+        // Soft drop shadow behind card
+        GameObject shadowObj = CreateUIElement("CardShadow", card.transform);
+        RectTransform shadowRT = shadowObj.GetComponent<RectTransform>();
+        StretchFull(shadowRT);
+        shadowRT.offsetMin = new Vector2(-12, -16);
+        shadowRT.offsetMax = new Vector2(12, 8);
+        Image shadowImg = shadowObj.AddComponent<Image>();
+        shadowImg.sprite = UISprites.SoftShadow;
+        shadowImg.type = Image.Type.Sliced;
+        shadowImg.color = Color.white;
+        shadowImg.raycastTarget = false;
+
+        // 1. Outer Rounded Gold / Iron Frame Border
         Image outerBorder = card.AddComponent<Image>();
-        outerBorder.color = new Color(0.92f, 0.78f, 0.35f, 1f); // Metallic Gold trim
+        outerBorder.sprite = UISprites.CardBorderPlayable;
+        outerBorder.type = Image.Type.Sliced;
+        outerBorder.color = Color.white;
 
         // 2. Inner Dark Card Stock
         GameObject cardInner = CreateUIElement("CardInner", card.transform);
         RectTransform innerRT = cardInner.GetComponent<RectTransform>();
-        innerRT.anchorMin = Vector2.zero;
-        innerRT.anchorMax = Vector2.one;
-        innerRT.offsetMin = new Vector2(3, 3);
-        innerRT.offsetMax = new Vector2(-3, -3);
+        StretchFull(innerRT);
+        innerRT.offsetMin = new Vector2(4, 4);
+        innerRT.offsetMax = new Vector2(-4, -4);
         Image innerImage = cardInner.AddComponent<Image>();
-        innerImage.color = new Color(0.12f, 0.11f, 0.15f, 1f); // Dark worn slate
+        innerImage.sprite = UISprites.CardBackground;
+        innerImage.type = Image.Type.Sliced;
+        innerImage.color = Color.white;
 
-        // 3. Top Banner (Title Bar)
+        // 3. Top Banner (Title Bar) with rounded top corners
         GameObject headerBanner = CreateUIElement("HeaderBanner", cardInner.transform);
         RectTransform headerRT = headerBanner.GetComponent<RectTransform>();
-        headerRT.anchorMin = new Vector2(0, 0.84f);
+        headerRT.anchorMin = new Vector2(0, 0.83f);
         headerRT.anchorMax = new Vector2(1, 1f);
-        headerRT.offsetMin = new Vector2(4, 2);
-        headerRT.offsetMax = new Vector2(-4, -3);
+        headerRT.offsetMin = new Vector2(3, 2);
+        headerRT.offsetMax = new Vector2(-3, -3);
         Image headerImage = headerBanner.AddComponent<Image>();
-        headerImage.color = new Color(0.35f, 0.12f, 0.14f, 1f);
+        headerImage.sprite = UISprites.GetCardHeader("ATTACK");
+        headerImage.type = Image.Type.Sliced;
+        headerImage.color = Color.white;
 
-        // Title text (prominent, bold, readable)
-        GameObject titleObj = CreateTextElement("CardTitle", headerBanner.transform, "STRIKE", 16, TextAlignmentOptions.Center);
+        // Title text (Cinzel Bold, auto-size enabled)
+        GameObject titleObj = CreateTextElement("CardTitle", headerBanner.transform, "STRIKE", 15, TextAlignmentOptions.Center, bold: true, autoSize: true, minSize: 11f, maxSize: 15f);
         RectTransform titleRT = titleObj.GetComponent<RectTransform>();
         StretchFull(titleRT);
+        titleRT.offsetMin = new Vector2(24, 0); // Leave room for energy gem on the left
+        titleRT.offsetMax = new Vector2(-4, 0);
         TextMeshProUGUI titleTMP = titleObj.GetComponent<TextMeshProUGUI>();
-        titleTMP.color = new Color(0.96f, 0.92f, 0.82f);
-        titleTMP.fontStyle = FontStyles.Bold;
+        titleTMP.color = new Color(0.98f, 0.94f, 0.82f);
 
         // 4. Energy Orb (Top-Left corner, overlapping the frame)
         GameObject energyOrb = CreateUIElement("EnergyOrb", card.transform);
@@ -595,80 +696,77 @@ public class CombatSceneBootstrapper : MonoBehaviour
         orbRT.anchorMax = new Vector2(0, 1);
         orbRT.pivot = new Vector2(0.5f, 0.5f);
         orbRT.anchoredPosition = new Vector2(8f, -8f);
-        orbRT.sizeDelta = new Vector2(34, 34);
+        orbRT.sizeDelta = new Vector2(36, 36);
         Image orbImage = energyOrb.AddComponent<Image>();
-        orbImage.color = new Color(0.12f, 0.55f, 0.95f, 1f); // Electric Blue Gem
+        orbImage.sprite = UISprites.CostBadgePlayable;
+        orbImage.color = Color.white;
 
         // Energy Orb Number
-        GameObject costObj = CreateTextElement("CostText", energyOrb.transform, "1", 20, TextAlignmentOptions.Center);
+        GameObject costObj = CreateTextElement("CostText", energyOrb.transform, "1", 20, TextAlignmentOptions.Center, bold: true);
         RectTransform costRT = costObj.GetComponent<RectTransform>();
         StretchFull(costRT);
         TextMeshProUGUI costTMP = costObj.GetComponent<TextMeshProUGUI>();
         costTMP.color = Color.white;
-        costTMP.fontStyle = FontStyles.Bold;
 
-        // 5. Artwork Box in the Center (Recessed, no images, user can add images later)
+        // 5. Artwork Box in the Center
         GameObject artFrame = CreateUIElement("ArtworkFrame", cardInner.transform);
         RectTransform artFrameRT = artFrame.GetComponent<RectTransform>();
-        artFrameRT.anchorMin = new Vector2(0.04f, 0.44f);
-        artFrameRT.anchorMax = new Vector2(0.96f, 0.83f);
+        artFrameRT.anchorMin = new Vector2(0.04f, 0.43f);
+        artFrameRT.anchorMax = new Vector2(0.96f, 0.82f);
         artFrameRT.offsetMin = Vector2.zero;
         artFrameRT.offsetMax = Vector2.zero;
         Image artFrameImage = artFrame.AddComponent<Image>();
-        artFrameImage.color = new Color(0.24f, 0.26f, 0.32f, 1f);
+        artFrameImage.sprite = UISprites.ArtworkFrame;
+        artFrameImage.type = Image.Type.Sliced;
+        artFrameImage.color = Color.white;
 
         GameObject artArea = CreateUIElement("ArtworkPlaceholder", artFrame.transform);
         RectTransform artRT = artArea.GetComponent<RectTransform>();
-        artRT.anchorMin = Vector2.zero;
-        artRT.anchorMax = Vector2.one;
-        artRT.offsetMin = new Vector2(2, 2);
-        artRT.offsetMax = new Vector2(-2, -2);
+        StretchFull(artRT);
+        artRT.offsetMin = new Vector2(3, 3);
+        artRT.offsetMax = new Vector2(-3, -3);
         Image artImage = artArea.AddComponent<Image>();
-        artImage.color = new Color(0.14f, 0.15f, 0.19f, 1f);
-
-        // Placeholder watermark
-        GameObject artWatermark = CreateTextElement("ArtLabel", artArea.transform,
-            "<size=12><color=#606880>— ARTWORK —</color></size>",
-            12, TextAlignmentOptions.Center);
-        RectTransform wmRT = artWatermark.GetComponent<RectTransform>();
-        StretchFull(wmRT);
+        artImage.sprite = UISprites.GetCardArtwork("Strike");
+        artImage.preserveAspect = true;
+        artImage.color = Color.white;
 
         // 6. Card Type Ribbon
         GameObject typeRibbon = CreateUIElement("TypeRibbon", cardInner.transform);
         RectTransform ribbonRT = typeRibbon.GetComponent<RectTransform>();
-        ribbonRT.anchorMin = new Vector2(0.08f, 0.37f);
-        ribbonRT.anchorMax = new Vector2(0.92f, 0.43f);
+        ribbonRT.anchorMin = new Vector2(0.08f, 0.36f);
+        ribbonRT.anchorMax = new Vector2(0.92f, 0.42f);
         ribbonRT.offsetMin = Vector2.zero;
         ribbonRT.offsetMax = Vector2.zero;
         Image ribbonImage = typeRibbon.AddComponent<Image>();
-        ribbonImage.color = new Color(0.18f, 0.19f, 0.24f, 0.85f);
+        ribbonImage.sprite = UISprites.GetPill("TypeRibbon", 128, 32, new Color(0.06f, 0.08f, 0.12f, 0.85f), new Color(0.14f, 0.17f, 0.24f, 0.85f), 1f, new Color(0.4f, 0.45f, 0.6f, 0.4f));
+        ribbonImage.type = Image.Type.Sliced;
+        ribbonImage.color = Color.white;
 
-        GameObject typeTextObj = CreateTextElement("TypeText", typeRibbon.transform, "ATTACK", 12, TextAlignmentOptions.Center);
+        GameObject typeTextObj = CreateTextElement("TypeText", typeRibbon.transform, "ATTACK", 11, TextAlignmentOptions.Center, bold: true, autoSize: true, minSize: 9f, maxSize: 12f);
         RectTransform typeTextRT = typeTextObj.GetComponent<RectTransform>();
         StretchFull(typeTextRT);
         TextMeshProUGUI typeTMP = typeTextObj.GetComponent<TextMeshProUGUI>();
-        typeTMP.color = new Color(0.75f, 0.72f, 0.65f);
-        typeTMP.fontStyle = FontStyles.Bold;
+        typeTMP.color = new Color(0.85f, 0.82f, 0.72f);
 
         // 7. Description Box at the Bottom
         GameObject descBox = CreateUIElement("DescriptionBox", cardInner.transform);
         RectTransform descBoxRT = descBox.GetComponent<RectTransform>();
         descBoxRT.anchorMin = new Vector2(0.04f, 0.03f);
-        descBoxRT.anchorMax = new Vector2(0.96f, 0.35f);
+        descBoxRT.anchorMax = new Vector2(0.96f, 0.34f);
         descBoxRT.offsetMin = Vector2.zero;
         descBoxRT.offsetMax = Vector2.zero;
         Image descBoxImage = descBox.AddComponent<Image>();
-        descBoxImage.color = new Color(0.09f, 0.10f, 0.13f, 0.95f);
+        descBoxImage.sprite = UISprites.GetRoundedRect("DescBox", 128, 128, 10f, new Color(0.05f, 0.06f, 0.09f, 0.90f), new Color(0.09f, 0.11f, 0.16f, 0.90f), 1f, new Color(0.25f, 0.28f, 0.38f, 0.5f));
+        descBoxImage.type = Image.Type.Sliced;
+        descBoxImage.color = Color.white;
 
-        GameObject descObj = CreateTextElement("DescText", descBox.transform, "Deal 6 damage.", 16, TextAlignmentOptions.Center);
+        GameObject descObj = CreateTextElement("DescText", descBox.transform, "Deal 6 damage.", 14, TextAlignmentOptions.Center, bold: false, autoSize: true, minSize: 10f, maxSize: 14f);
         RectTransform descRT = descObj.GetComponent<RectTransform>();
-        descRT.anchorMin = Vector2.zero;
-        descRT.anchorMax = Vector2.one;
-        descRT.offsetMin = new Vector2(4, 4);
-        descRT.offsetMax = new Vector2(-4, -4);
+        StretchFull(descRT);
+        descRT.offsetMin = new Vector2(6, 4);
+        descRT.offsetMax = new Vector2(-6, -4);
         TextMeshProUGUI descTMP = descObj.GetComponent<TextMeshProUGUI>();
-        descTMP.color = new Color(0.90f, 0.90f, 0.92f);
-        descTMP.textWrappingMode = TextWrappingModes.Normal;
+        descTMP.color = new Color(0.92f, 0.92f, 0.95f);
 
         // 8. Attach CardUI
         CardUI cardUI = card.AddComponent<CardUI>();
@@ -690,14 +788,16 @@ public class CombatSceneBootstrapper : MonoBehaviour
         RectTransform rt = badge.GetComponent<RectTransform>();
         rt.anchorMin = (pos.x >= 0) ? new Vector2(0, 0) : new Vector2(1, 0);
         rt.anchorMax = rt.anchorMin;
-        rt.pivot = (pos.x >= 0) ? new Vector2(0.5f, 0.5f) : new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
         rt.anchoredPosition = pos;
-        rt.sizeDelta = new Vector2(80, 56);
+        rt.sizeDelta = new Vector2(90, 64);
 
         Image bg = badge.AddComponent<Image>();
-        bg.color = color;
+        bg.sprite = (pos.x >= 0) ? UISprites.DrawPileBadge : UISprites.DiscardPileBadge;
+        bg.type = Image.Type.Sliced;
+        bg.color = Color.white;
 
-        GameObject countObj = CreateTextElement("Count", badge.transform, "10", 20, TextAlignmentOptions.Center);
+        GameObject countObj = CreateTextElement("Count", badge.transform, "10", 22, TextAlignmentOptions.Center, bold: true);
         RectTransform countRT = countObj.GetComponent<RectTransform>();
         countRT.anchorMin = new Vector2(0, 0.35f);
         countRT.anchorMax = new Vector2(1, 1f);
@@ -705,16 +805,15 @@ public class CombatSceneBootstrapper : MonoBehaviour
         countRT.offsetMax = Vector2.zero;
         TextMeshProUGUI countTMP = countObj.GetComponent<TextMeshProUGUI>();
         countTMP.color = Color.white;
-        countTMP.fontStyle = FontStyles.Bold;
 
-        GameObject lblObj = CreateTextElement("Label", badge.transform, label, 11, TextAlignmentOptions.Center);
+        GameObject lblObj = CreateTextElement("Label", badge.transform, label, 11, TextAlignmentOptions.Center, bold: true);
         RectTransform lblRT = lblObj.GetComponent<RectTransform>();
         lblRT.anchorMin = new Vector2(0, 0);
         lblRT.anchorMax = new Vector2(1, 0.40f);
         lblRT.offsetMin = Vector2.zero;
         lblRT.offsetMax = Vector2.zero;
         TextMeshProUGUI lblTMP = lblObj.GetComponent<TextMeshProUGUI>();
-        lblTMP.color = new Color(0.85f, 0.85f, 0.90f);
+        lblTMP.color = new Color(0.92f, 0.90f, 0.82f);
 
         return badge;
     }
@@ -725,12 +824,11 @@ public class CombatSceneBootstrapper : MonoBehaviour
         RectTransform popupRT = popup.GetComponent<RectTransform>();
         popupRT.sizeDelta = new Vector2(180, 45);
 
-        GameObject textObj = CreateTextElement("PopupText", popup.transform, "-6", 28, TextAlignmentOptions.Center);
+        GameObject textObj = CreateTextElement("PopupText", popup.transform, "-6", 28, TextAlignmentOptions.Center, bold: true);
         RectTransform textRT = textObj.GetComponent<RectTransform>();
         StretchFull(textRT);
         TextMeshProUGUI textTMP = textObj.GetComponent<TextMeshProUGUI>();
-        textTMP.fontStyle = FontStyles.Bold;
-        textTMP.color = new Color(0.95f, 0.25f, 0.25f);
+        textTMP.color = new Color(0.98f, 0.35f, 0.35f);
 
         return popup;
     }
@@ -749,12 +847,28 @@ public class CombatSceneBootstrapper : MonoBehaviour
         boxRT.anchorMin = new Vector2(0.5f, 0.5f);
         boxRT.anchorMax = new Vector2(0.5f, 0.5f);
         boxRT.pivot = new Vector2(0.5f, 0.5f);
-        boxRT.sizeDelta = new Vector2(500, 320);
+        boxRT.sizeDelta = new Vector2(520, 330);
+
+        // Soft drop shadow under dialog box
+        GameObject shadowObj = CreateUIElement("DialogShadow", box.transform);
+        RectTransform shadowRT = shadowObj.GetComponent<RectTransform>();
+        StretchFull(shadowRT);
+        shadowRT.offsetMin = new Vector2(-16, -20);
+        shadowRT.offsetMax = new Vector2(16, 12);
+        Image shadowImg = shadowObj.AddComponent<Image>();
+        shadowImg.sprite = UISprites.SoftShadow;
+        shadowImg.type = Image.Type.Sliced;
+        shadowImg.color = Color.white;
 
         Image boxBg = box.AddComponent<Image>();
-        boxBg.color = new Color(0.12f, 0.12f, 0.16f, 0.98f);
+        boxBg.sprite = UISprites.GetRoundedRect("DialogBox", 128, 128, 22f,
+            new Color(0.06f, 0.08f, 0.12f, 0.98f),
+            new Color(0.12f, 0.15f, 0.22f, 0.98f),
+            2.5f, new Color(0.88f, 0.74f, 0.38f, 0.90f));
+        boxBg.type = Image.Type.Sliced;
+        boxBg.color = Color.white;
 
-        GameObject titleObj = CreateTextElement("Title", box.transform, title, 44, TextAlignmentOptions.Center);
+        GameObject titleObj = CreateTextElement("Title", box.transform, title, 38, TextAlignmentOptions.Center, bold: true);
         RectTransform titleRT = titleObj.GetComponent<RectTransform>();
         titleRT.anchorMin = new Vector2(0.05f, 0.65f);
         titleRT.anchorMax = new Vector2(0.95f, 0.92f);
@@ -762,18 +876,17 @@ public class CombatSceneBootstrapper : MonoBehaviour
         titleRT.offsetMax = Vector2.zero;
         TextMeshProUGUI titleTMP = titleObj.GetComponent<TextMeshProUGUI>();
         titleTMP.color = accentColor;
-        titleTMP.fontStyle = FontStyles.Bold;
 
-        GameObject subObj = CreateTextElement("Subtitle", box.transform, subtitle, 20, TextAlignmentOptions.Center);
+        GameObject subObj = CreateTextElement("Subtitle", box.transform, subtitle, 18, TextAlignmentOptions.Center, bold: false);
         RectTransform subRT = subObj.GetComponent<RectTransform>();
         subRT.anchorMin = new Vector2(0.05f, 0.40f);
         subRT.anchorMax = new Vector2(0.95f, 0.65f);
         subRT.offsetMin = Vector2.zero;
         subRT.offsetMax = Vector2.zero;
-        subObj.GetComponent<TextMeshProUGUI>().color = new Color(0.85f, 0.85f, 0.90f);
+        subObj.GetComponent<TextMeshProUGUI>().color = new Color(0.85f, 0.88f, 0.92f);
 
         GameObject restartBtn = CreateButton("RestartButton", box.transform, "PLAY AGAIN",
-            new Color(0.20f, 0.55f, 0.30f), Color.white);
+            new Color(0.20f, 0.55f, 0.30f), Color.white, UISprites.PlayAgainButton);
         RectTransform btnRT = restartBtn.GetComponent<RectTransform>();
         btnRT.anchorMin = new Vector2(0.25f, 0.10f);
         btnRT.anchorMax = new Vector2(0.75f, 0.32f);
@@ -795,10 +908,10 @@ public class CombatSceneBootstrapper : MonoBehaviour
         rt.sizeDelta = new Vector2(0f, 130f);
 
         Image bg = banner.AddComponent<Image>();
-        bg.color = new Color(0.06f, 0.08f, 0.12f, 0.94f);
+        bg.color = new Color(0.05f, 0.07f, 0.11f, 0.94f);
         bg.raycastTarget = false;
 
-        // Top Gold Trim Line
+        // Top Gold Trim Line (Soft fade divider line)
         GameObject topTrim = CreateUIElement("TopTrim", banner.transform);
         RectTransform topRT = topTrim.GetComponent<RectTransform>();
         topRT.anchorMin = new Vector2(0f, 1f);
@@ -807,7 +920,8 @@ public class CombatSceneBootstrapper : MonoBehaviour
         topRT.anchoredPosition = Vector2.zero;
         topRT.sizeDelta = new Vector2(0f, 4f);
         Image topImg = topTrim.AddComponent<Image>();
-        topImg.color = new Color(0.95f, 0.82f, 0.35f, 1f);
+        topImg.sprite = UISprites.DividerLine;
+        topImg.color = Color.white;
         topImg.raycastTarget = false;
 
         // Bottom Gold Trim Line
@@ -819,13 +933,14 @@ public class CombatSceneBootstrapper : MonoBehaviour
         botRT.anchoredPosition = Vector2.zero;
         botRT.sizeDelta = new Vector2(0f, 4f);
         Image botImg = botTrim.AddComponent<Image>();
-        botImg.color = new Color(0.95f, 0.82f, 0.35f, 1f);
+        botImg.sprite = UISprites.DividerLine;
+        botImg.color = Color.white;
         botImg.raycastTarget = false;
 
         // Big, Bold Text: "YOUR TURN"
         GameObject textObj = CreateTextElement("BannerText", banner.transform,
-            "<size=52><color=#ffe066><b>YOUR TURN</b></color></size>\n<size=18><color=#b0c4de>— CHOOSE YOUR ACTIONS —</color></size>",
-            32, TextAlignmentOptions.Center);
+            "<size=48><color=#ffe066><b>YOUR TURN</b></color></size>\n<size=17><color=#d0d8e8>— CHOOSE YOUR ACTIONS —</color></size>",
+            30, TextAlignmentOptions.Center, bold: true);
         RectTransform textRT = textObj.GetComponent<RectTransform>();
         StretchFull(textRT);
 
@@ -836,7 +951,6 @@ public class CombatSceneBootstrapper : MonoBehaviour
     // ─── UTILITY HELPERS ───
 
     private static TMP_FontAsset defaultFontAsset;
-    private static Material sharpFontMaterial;
 
     public static TMP_FontAsset GetDefaultFont()
     {
@@ -854,24 +968,6 @@ public class CombatSceneBootstrapper : MonoBehaviour
         return defaultFontAsset;
     }
 
-    /// <summary>
-    /// Returns a material instance with boosted _Sharpness for crisper SDF text edges.
-    /// </summary>
-    public static Material GetSharpFontMaterial()
-    {
-        if (sharpFontMaterial == null)
-        {
-            TMP_FontAsset font = GetDefaultFont();
-            if (font != null && font.material != null)
-            {
-                sharpFontMaterial = new Material(font.material);
-                sharpFontMaterial.name = "LiberationSans SDF Sharp (Instance)";
-                sharpFontMaterial.SetFloat("_Sharpness", 0.5f);
-            }
-        }
-        return sharpFontMaterial;
-    }
-
     private GameObject CreateUIElement(string name, Transform parent)
     {
         GameObject obj = new GameObject(name);
@@ -880,23 +976,17 @@ public class CombatSceneBootstrapper : MonoBehaviour
         return obj;
     }
 
-    private GameObject CreateTextElement(string name, Transform parent, string text, int fontSize, TextAlignmentOptions alignment)
+    private GameObject CreateTextElement(string name, Transform parent, string text, int fontSize, TextAlignmentOptions alignment, bool bold = false, bool autoSize = false, float minSize = 10f, float maxSize = 24f)
     {
         GameObject obj = new GameObject(name);
         obj.transform.SetParent(parent, false);
         obj.AddComponent<RectTransform>();
 
         TextMeshProUGUI tmp = obj.AddComponent<TextMeshProUGUI>();
-        TMP_FontAsset font = GetDefaultFont();
-        if (font != null)
-        {
-            tmp.font = font;
-            Material sharpMat = GetSharpFontMaterial();
-            if (sharpMat != null)
-                tmp.fontMaterial = sharpMat;
-            else
-                tmp.fontSharedMaterial = font.material;
-        }
+        if (bold)
+            UIFonts.ApplyTitle(tmp, autoSize, minSize, maxSize > 0 ? maxSize : fontSize);
+        else
+            UIFonts.ApplyBody(tmp, true, autoSize, minSize, maxSize > 0 ? maxSize : fontSize);
 
         tmp.text = text;
         tmp.fontSize = fontSize;
@@ -910,25 +1000,38 @@ public class CombatSceneBootstrapper : MonoBehaviour
         return obj;
     }
 
-    private GameObject CreateButton(string name, Transform parent, string text, Color bgColor, Color textColor)
+    private GameObject CreateButton(string name, Transform parent, string text, Color bgColor, Color textColor, Sprite customSprite = null)
     {
         GameObject btnObj = CreateUIElement(name, parent);
         Image btnImage = btnObj.AddComponent<Image>();
-        btnImage.color = bgColor;
+        if (customSprite != null)
+        {
+            btnImage.sprite = customSprite;
+            btnImage.type = Image.Type.Sliced;
+            btnImage.color = Color.white;
+        }
+        else
+        {
+            btnImage.sprite = UISprites.GetPill("DefaultButton", 140, 50, bgColor * 0.8f, bgColor, 2f, new Color(1f, 1f, 1f, 0.4f));
+            btnImage.type = Image.Type.Sliced;
+            btnImage.color = Color.white;
+        }
 
         Button btn = btnObj.AddComponent<Button>();
         ColorBlock colors = btn.colors;
         colors.normalColor = Color.white;
-        colors.highlightedColor = new Color(1.2f, 1.2f, 1.2f);
-        colors.pressedColor = new Color(0.8f, 0.8f, 0.8f);
+        colors.highlightedColor = new Color(1.15f, 1.15f, 1.15f);
+        colors.pressedColor = new Color(0.85f, 0.85f, 0.85f);
         btn.colors = colors;
 
-        GameObject btnText = CreateTextElement("Text", btnObj.transform, text, 20, TextAlignmentOptions.Center);
+        // Smooth hover and press scale effect
+        btnObj.AddComponent<UIButtonEffect>();
+
+        GameObject btnText = CreateTextElement("Text", btnObj.transform, text, 18, TextAlignmentOptions.Center, bold: true);
         RectTransform textRT = btnText.GetComponent<RectTransform>();
         StretchFull(textRT);
         TextMeshProUGUI tmp = btnText.GetComponent<TextMeshProUGUI>();
         tmp.color = textColor;
-        tmp.fontStyle = FontStyles.Bold;
         tmp.raycastTarget = false;
 
         return btnObj;

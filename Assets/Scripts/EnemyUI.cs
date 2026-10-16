@@ -3,7 +3,8 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// Displays the enemy's current HP bar and intent (next action preview).
+/// Displays the enemy's current HP bar, block badge, and animated intent badge
+/// with Sword / Shield icons from Assets/Assets/AdventureGameIconPack.
 /// </summary>
 public class EnemyUI : MonoBehaviour
 {
@@ -32,7 +33,23 @@ public class EnemyUI : MonoBehaviour
     public void Initialize(string name, int hp)
     {
         maxHP = hp;
-        if (nameText != null) nameText.text = name;
+        if (nameText != null)
+        {
+            nameText.text = name;
+            UIFonts.ApplyBody(nameText, semiBold: true, autoSize: true, minSize: 11f, maxSize: 18f);
+        }
+        if (hpText != null)
+        {
+            UIFonts.ApplyBody(hpText, semiBold: true, autoSize: false);
+        }
+        if (blockText != null)
+        {
+            UIFonts.ApplyBody(blockText, semiBold: true, autoSize: false);
+        }
+        if (intentText != null)
+        {
+            UIFonts.ApplyBody(intentText, semiBold: true, autoSize: true, minSize: 11f, maxSize: 18f);
+        }
         UpdateHP(hp, 0);
     }
 
@@ -59,10 +76,15 @@ public class EnemyUI : MonoBehaviour
                 hpFillImage.color = Color.Lerp(new Color(0.85f, 0.15f, 0.15f), new Color(0.9f, 0.7f, 0.1f), pct * 2f);
         }
 
-        // Block display
+        // Block display with pop-in
         if (blockContainer != null)
         {
+            bool wasActive = blockContainer.activeSelf;
             blockContainer.SetActive(block > 0);
+            if (block > 0 && !wasActive)
+            {
+                UITween.PopIn(blockContainer.GetComponent<RectTransform>(), 0.30f);
+            }
             if (blockText != null)
                 blockText.text = block.ToString();
         }
@@ -70,23 +92,95 @@ public class EnemyUI : MonoBehaviour
 
     public void ShowIntent(string action, int value)
     {
-        if (intentContainer != null)
-            intentContainer.SetActive(true);
+        if (intentContainer == null) return;
 
-        if (intentText != null)
+        intentContainer.SetActive(true);
+        Image bgImg = intentContainer.GetComponent<Image>();
+
+        if (action == "Attack")
         {
-            if (action == "Attack")
+            if (bgImg != null)
+            {
+                bgImg.sprite = UISprites.IntentBadgeAttack;
+                bgImg.type = Image.Type.Sliced;
+                bgImg.color = Color.white;
+            }
+
+            if (intentIcon != null)
+            {
+                Sprite sword = UISprites.GetSwordIcon();
+                if (sword != null)
+                {
+                    intentIcon.sprite = sword;
+                    intentIcon.color = Color.white;
+                    intentIcon.preserveAspect = true;
+                    intentIcon.gameObject.SetActive(true);
+                }
+            }
+
+            if (intentText != null)
+            {
                 intentText.text = $"ATK {value}";
-            else if (action == "Defend")
+                intentText.color = new Color(1f, 0.95f, 0.95f);
+            }
+        }
+        else if (action == "Defend")
+        {
+            if (bgImg != null)
+            {
+                bgImg.sprite = UISprites.IntentBadgeDefend;
+                bgImg.type = Image.Type.Sliced;
+                bgImg.color = Color.white;
+            }
+
+            if (intentIcon != null)
+            {
+                Sprite shield = UISprites.GetShieldIcon();
+                if (shield != null)
+                {
+                    intentIcon.sprite = shield;
+                    intentIcon.color = Color.white;
+                    intentIcon.preserveAspect = true;
+                    intentIcon.gameObject.SetActive(true);
+                }
+            }
+
+            if (intentText != null)
+            {
                 intentText.text = $"DEF {value}";
-            else
+                intentText.color = new Color(0.95f, 0.95f, 1f);
+            }
+        }
+        else
+        {
+            if (intentText != null)
                 intentText.text = action;
+        }
+
+        // Pop-in bounce animation
+        RectTransform rt = intentContainer.GetComponent<RectTransform>();
+        if (rt != null)
+        {
+            UITween.PopIn(rt, 0.35f);
         }
     }
 
     public void HideIntent()
     {
-        if (intentContainer != null)
-            intentContainer.SetActive(false);
+        if (intentContainer != null && intentContainer.activeSelf)
+        {
+            RectTransform rt = intentContainer.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                UITween.Scale(rt, Vector3.zero, 0.16f, EaseType.EaseInQuad, () =>
+                {
+                    intentContainer.SetActive(false);
+                });
+            }
+            else
+            {
+                intentContainer.SetActive(false);
+            }
+        }
     }
 }
