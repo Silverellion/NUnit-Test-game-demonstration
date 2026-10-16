@@ -535,7 +535,8 @@ public class CombatManager : MonoBehaviour
 
     public bool CanPlayCard(CardData card)
     {
-        return isPlayerTurn && !combatEnded && !isActionInProgress && !isDrawingCards && playerEnergy >= card.energyCost;
+        return isPlayerTurn && !combatEnded && !isActionInProgress && !isDrawingCards
+            && CombatRules.CanAfford(playerEnergy, card.energyCost);
     }
 
     public bool IsPlayerTurn()
@@ -818,26 +819,8 @@ public class CombatManager : MonoBehaviour
 
     private void DealDamageToEnemy(int damage)
     {
-        int remainingDamage = damage;
-
-        if (enemyBlock > 0)
-        {
-            if (enemyBlock >= remainingDamage)
-            {
-                enemyBlock -= remainingDamage;
-                remainingDamage = 0;
-            }
-            else
-            {
-                remainingDamage -= enemyBlock;
-                enemyBlock = 0;
-            }
-        }
-
-        if (remainingDamage > 0)
-        {
-            enemyHP = Mathf.Max(0, enemyHP - remainingDamage);
-        }
+        // CombatRules.ResolveDamage handles block absorption and HP clamping
+        CombatRules.ResolveDamage(damage, ref enemyBlock, ref enemyHP);
 
         if (enemyUI != null)
         {
@@ -848,26 +831,8 @@ public class CombatManager : MonoBehaviour
 
     private void DealDamageToPlayer(int damage)
     {
-        int remainingDamage = damage;
-
-        if (playerBlock > 0)
-        {
-            if (playerBlock >= remainingDamage)
-            {
-                playerBlock -= remainingDamage;
-                remainingDamage = 0;
-            }
-            else
-            {
-                remainingDamage -= playerBlock;
-                playerBlock = 0;
-            }
-        }
-
-        if (remainingDamage > 0)
-        {
-            playerHP = Mathf.Max(0, playerHP - remainingDamage);
-        }
+        // CombatRules.ResolveDamage handles block absorption and HP clamping
+        CombatRules.ResolveDamage(damage, ref playerBlock, ref playerHP);
 
         if (playerUI != null)
         {
@@ -880,9 +845,10 @@ public class CombatManager : MonoBehaviour
 
     private void PlanEnemyAction()
     {
-        EnemyAction action = enemyPattern[enemyTurnCount % enemyPattern.Length];
-        enemyNextAction = action.type;
-        enemyNextValue = action.value;
+        // CombatRules.GetEnemyIntent drives the same pattern array used in tests
+        var intent = CombatRules.GetEnemyIntent(enemyTurnCount);
+        enemyNextAction = intent.action;
+        enemyNextValue  = intent.value;
         if (enemyUI != null) enemyUI.ShowIntent(enemyNextAction, enemyNextValue);
     }
 
