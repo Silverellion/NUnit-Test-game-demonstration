@@ -70,21 +70,6 @@ public class CombatManager : MonoBehaviour
     private int enemyNextValue;
     private int enemyTurnCount = 0;
 
-    private struct EnemyAction
-    {
-        public string type;
-        public int value;
-        public EnemyAction(string t, int v) { type = t; value = v; }
-    }
-
-    private EnemyAction[] enemyPattern = new EnemyAction[]
-    {
-        new EnemyAction("Attack", 8),
-        new EnemyAction("Attack", 12),
-        new EnemyAction("Defend", 6),
-        new EnemyAction("Attack", 10),
-        new EnemyAction("Attack", 6),
-    };
 
     void Start()
     {
@@ -391,17 +376,10 @@ public class CombatManager : MonoBehaviour
 
         for (int i = 0; i < count; i++)
         {
-            if (drawPile.Count == 0)
-            {
-                if (discardPile.Count == 0) break;
-                drawPile.AddRange(discardPile);
-                discardPile.Clear();
-                ShuffleDeck(drawPile);
-            }
+            if (!CombatRules.DrawOneCard(drawPile, hand, discardPile, ShuffleDeck))
+                break;
 
-            CardData card = drawPile[0];
-            drawPile.RemoveAt(0);
-            hand.Add(card);
+            CardData card = hand[hand.Count - 1];
 
             // Spawn new card at Draw Pile position and animate smoothly into hand
             yield return StartCoroutine(DealSingleCardRoutine(card, hand.Count - 1));
@@ -525,8 +503,7 @@ public class CombatManager : MonoBehaviour
 
     private void DiscardHand()
     {
-        discardPile.AddRange(hand);
-        hand.Clear();
+        CombatRules.DiscardHand(hand, discardPile);
         ClearHandDisplay();
         UpdatePileCounters();
     }
@@ -820,24 +797,28 @@ public class CombatManager : MonoBehaviour
     private void DealDamageToEnemy(int damage)
     {
         // CombatRules.ResolveDamage handles block absorption and HP clamping
-        CombatRules.ResolveDamage(damage, ref enemyBlock, ref enemyHP);
+        int hpLost = CombatRules.ResolveDamage(damage, ref enemyBlock, ref enemyHP);
 
         if (enemyUI != null)
         {
             enemyUI.UpdateHP(enemyHP, enemyBlock);
-            SpawnPopup(enemyUI.transform, $"-{damage}", new Color(0.95f, 0.25f, 0.25f));
+            string popupText = hpLost > 0 ? $"-{hpLost}" : "Blocked";
+            Color popupColor = hpLost > 0 ? new Color(0.95f, 0.25f, 0.25f) : new Color(0.3f, 0.6f, 0.95f);
+            SpawnPopup(enemyUI.transform, popupText, popupColor);
         }
     }
 
     private void DealDamageToPlayer(int damage)
     {
         // CombatRules.ResolveDamage handles block absorption and HP clamping
-        CombatRules.ResolveDamage(damage, ref playerBlock, ref playerHP);
+        int hpLost = CombatRules.ResolveDamage(damage, ref playerBlock, ref playerHP);
 
         if (playerUI != null)
         {
             playerUI.UpdateHP(playerHP, playerBlock);
-            SpawnPopup(playerUI.transform, $"-{damage}", new Color(0.95f, 0.25f, 0.25f));
+            string popupText = hpLost > 0 ? $"-{hpLost}" : "Blocked";
+            Color popupColor = hpLost > 0 ? new Color(0.95f, 0.25f, 0.25f) : new Color(0.3f, 0.6f, 0.95f);
+            SpawnPopup(playerUI.transform, popupText, popupColor);
         }
     }
 
@@ -1043,4 +1024,37 @@ public class CombatManager : MonoBehaviour
         if (target != null)
             target.anchoredPosition = orig;
     }
+
+    #region DEMO ONLY
+    public void DebugSetPlayerHP(int hp)
+    {
+        playerHP = hp;
+        if (playerUI != null) playerUI.UpdateHP(playerHP, playerBlock);
+    }
+
+    public void DebugSetPlayerBlock(int block)
+    {
+        playerBlock = block;
+        if (playerUI != null) playerUI.UpdateHP(playerHP, playerBlock);
+    }
+
+    public void DebugSetEnergy(int energy)
+    {
+        playerEnergy = energy;
+        if (playerUI != null) playerUI.UpdateEnergy(playerEnergy, playerMaxEnergy);
+        UpdateAllCardStates();
+    }
+
+    public void DebugEmptyDrawPile()
+    {
+        drawPile.Clear();
+        UpdatePileCounters();
+    }
+
+    public void DebugSetEnemyTurn(int turn)
+    {
+        enemyTurnCount = turn;
+        PlanEnemyAction();
+    }
+    #endregion
 }

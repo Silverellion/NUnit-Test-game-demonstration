@@ -55,6 +55,14 @@ ExportedObj/
 *.unityproj
 *.sln
 *.slnx
+!CombatRules.Tests/*.csproj
+!CombatRules.Tests/*.sln
+!CombatRules.Tests/*.slnx
+
+# Test project build artifacts
+CombatRules.Tests/bin/
+CombatRules.Tests/obj/
+
 *.suo
 *.tmp
 *.user
