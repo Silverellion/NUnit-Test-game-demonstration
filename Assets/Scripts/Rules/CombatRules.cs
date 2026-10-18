@@ -19,22 +19,21 @@ public static class CombatRules
 
         int remaining = damage;
 
-        // --- BUG 2 DEMO: Uncomment next line and comment the 'if (block > 0)' line below ---
+        // --- BUG 2 DEMO: to reproduce, comment all CORRECT lines and uncomment all BUG lines ---
         // if (false && block > 0) // BUG: block is ignored completely
-        if (block > 0)
+        if (block > 0) // CORRECT
         {
             if (block >= remaining) { block -= remaining; remaining = 0; }
-            else                   { remaining -= block;  block = 0;    }
+            else { remaining -= block; block = 0; }
         }
 
         int hpLost = 0;
         if (remaining > 0)
         {
-            // --- BUG 1 DEMO: Uncomment next line and comment the line below ---
+            // --- BUG 1 DEMO: to reproduce, comment all CORRECT lines and uncomment all BUG lines ---
             // hpLost = remaining; // BUG: overkill does not clamp, HP goes negative
-            hpLost = remaining > hp ? hp : remaining;
-            hp    -= hpLost;
-            if (hp < 0) hp = 0;
+            hpLost = remaining > hp ? hp : remaining; // CORRECT
+            hp -= hpLost;
         }
         return hpLost;
     }
@@ -46,9 +45,9 @@ public static class CombatRules
     /// </summary>
     public static bool CanAfford(int currentEnergy, int cardCost)
     {
-        // --- BUG 3 DEMO: Uncomment next line and comment the line below ---
+        // --- BUG 3 DEMO: to reproduce, comment all CORRECT lines and uncomment all BUG lines ---
         // return currentEnergy > cardCost; // BUG: cannot play card when energy exactly equals cost
-        return currentEnergy >= cardCost;
+        return currentEnergy >= cardCost; // CORRECT
     }
 
     // ─── ENEMY AI PATTERN ────────────────────────────────────────────────────
@@ -70,9 +69,9 @@ public static class CombatRules
     /// </summary>
     public static (string action, int value) GetEnemyIntent(int turnCount)
     {
-        // --- BUG 4 DEMO: Uncomment next line and comment the line below ---
+        // --- BUG 4 DEMO: to reproduce, comment all CORRECT lines and uncomment all BUG lines ---
         // return EnemyPattern[turnCount % 4]; // BUG: modulo 4 skips 5th move (Attack 6)
-        return EnemyPattern[turnCount % EnemyPattern.Length];
+        return EnemyPattern[turnCount % EnemyPattern.Length]; // CORRECT
     }
 
     // ─── DECK HELPERS ────────────────────────────────────────────────────────
@@ -100,12 +99,12 @@ public static class CombatRules
     {
         if (drawPile.Count == 0)
         {
-            // --- BUG 5 DEMO: Uncomment next line and comment the 4 lines below ---
+            // --- BUG 5 DEMO: to reproduce, comment all CORRECT lines and uncomment all BUG lines ---
             // return false; // BUG: fails to recycle discard pile into draw pile
-            if (discardPile.Count == 0) return false;
-            drawPile.AddRange(discardPile);
-            discardPile.Clear();
-            shuffle?.Invoke(drawPile);
+            if (discardPile.Count == 0) return false; // CORRECT
+            drawPile.AddRange(discardPile); // CORRECT
+            discardPile.Clear(); // CORRECT
+            shuffle?.Invoke(drawPile); // CORRECT
         }
 
         if (drawPile.Count == 0) return false;
